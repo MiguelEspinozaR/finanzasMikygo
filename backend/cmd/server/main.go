@@ -1,0 +1,44 @@
+package main
+
+import (
+	"finanzasMikygo/internal/config"
+	"finanzasMikygo/internal/database"
+	"finanzasMikygo/internal/handler"
+	"finanzasMikygo/internal/repository"
+	"finanzasMikygo/internal/router"
+	"finanzasMikygo/internal/service"
+	"log"
+)
+
+// @title           Finanzas Mikygo API
+// @version         1.0
+// @description     API para gestión de ingresos laborales
+// @host            localhost:8080
+// @BasePath        /api/v1
+// @schemes         http
+func main() {
+	cfg := config.Load()
+
+	db, err := database.NewPool(cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("Error connecting to database: %v", err)
+	}
+	defer db.Close()
+
+	ingresoRepo := repository.NewIngresoRepository(db)
+	dashboardRepo := repository.NewDashboardRepository(db)
+
+	ingresoSvc := service.NewIngresoService(ingresoRepo)
+	dashboardSvc := service.NewDashboardService(dashboardRepo)
+
+	ingresoHandler := handler.NewIngresoHandler(ingresoSvc)
+	dashboardHandler := handler.NewDashboardHandler(dashboardSvc)
+	sqlHandler := handler.NewSQLHandler(db)
+
+	r := router.New(cfg, ingresoHandler, dashboardHandler, sqlHandler)
+
+	log.Printf("Server starting on port %s", cfg.Port)
+	if err := r.Run(":" + cfg.Port); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
+}

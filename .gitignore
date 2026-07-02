@@ -1,12 +1,26 @@
+<<<<<<< HEAD
 # If you prefer the allow list template instead of the deny list, see community template:
 # https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
 #
 # Binaries for programs and plugins
+=======
+# Environment
+.env
+.env.local
+.env.*.local
+backend/.env
+
+# Go
+backend/tmp/
+backend/vendor/
+backend/coverage/
+>>>>>>> 9135c11 (1st commit despues de desarrollar unos dias xD)
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+<<<<<<< HEAD
 
 # Test binary, built with `go test -c`
 *.test
@@ -30,3 +44,70 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+=======
+*.test
+*.out
+backend/go.work
+backend/go.work.sum
+
+# Node / Web
+web/node_modules/
+web/dist/
+web/.vite/
+web/coverage/
+web/.eslintcache
+
+# Flutter
+mobile/.dart_tool/
+mobile/.packages
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/pubspec.lock
+mobile/.metadata
+mobile/.pub-cache/
+mobile/.pub/
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/build/
+mobile/ios/Pods/
+mobile/ios/.symlinks/
+mobile/ios/Flutter/Flutter.framework
+mobile/ios/Flutter/Flutter.podspec
+mobile/linux/flutter/ephemeral/
+mobile/macos/Pods/
+mobile/macos/Flutter/ephemeral/
+mobile/web/favicon.png
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Uploads (keep dir, ignore files)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Swagger generated
+backend/docs/
+!backend/docs/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+*.bak
+*.tmp
+*.temp
+.cache/
+>>>>>>> 9135c11 (1st commit despues de desarrollar unos dias xD)
