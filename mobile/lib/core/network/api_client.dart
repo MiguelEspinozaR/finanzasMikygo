@@ -18,7 +18,7 @@ class ApiClient {
   // Ingresos
   Future<IngresoListResponse> getIngresos({
     int page = 1,
-    int pageSize = 20,
+    int pageSize = 1000,
     String? tipo,
     String? fechaInicio,
     String? fechaFin,
@@ -35,8 +35,18 @@ class ApiClient {
     return IngresoListResponse.fromJson(response.data as Map<String, dynamic>);
   }
 
+  Future<Ingreso> getIngresoById(int id) async {
+    final response = await _dio.get('/ingresos/$id');
+    return Ingreso.fromJson(response.data as Map<String, dynamic>);
+  }
+
   Future<Ingreso> createIngreso(CreateIngresoRequest request) async {
     final response = await _dio.post('/ingresos', data: request.toJson());
+    return Ingreso.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<Ingreso> updateIngreso(int id, UpdateIngresoRequest request) async {
+    final response = await _dio.put('/ingresos/$id', data: request.toJson());
     return Ingreso.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -44,17 +54,19 @@ class ApiClient {
     await _dio.delete('/ingresos/$id');
   }
 
-  Future<Map<String, dynamic>> uploadImage(String filePath) async {
+  Future<Map<String, dynamic>> uploadImage(String filePath, {int? ingresoId}) async {
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(filePath),
+      if (ingresoId != null) 'ingreso_id': ingresoId.toString(),
     });
     final response = await _dio.post('/ingresos/upload', data: formData);
     return response.data as Map<String, dynamic>;
   }
 
-  Future<Map<String, dynamic>> getFechasOcupadas(int mes, int anio) async {
+  Future<Map<String, List<String>>> getFechasOcupadas(int mes, int anio) async {
     final response = await _dio.get('/ingresos/fechas-ocupadas', queryParameters: {'mes': mes, 'anio': anio});
-    return Map<String, dynamic>.from(response.data as Map);
+    final raw = response.data as Map<String, dynamic>;
+    return raw.map((key, value) => MapEntry(key, List<String>.from(value as List)));
   }
 
   // Dashboard

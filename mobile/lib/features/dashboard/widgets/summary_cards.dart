@@ -1,34 +1,63 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
-import 'dart:math' as math;
 
 class SummaryCards extends StatelessWidget {
   final dynamic summary;
-  final DateTime month;
+  final int totalSemanal;
+  final int totalMensual;
 
-  const SummaryCards({super.key, required this.summary, required this.month});
+  const SummaryCards({
+    super.key,
+    required this.summary,
+    required this.totalSemanal,
+    required this.totalMensual,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    String formatMonto(int centavos) {
+      return '${(centavos / 100).toStringAsFixed(2)} BOB';
+    }
 
-    return Row(
+    return Column(
       children: [
-        _buildCard(
-          context,
-          label: 'Trabajados',
-          value: summary.diasTrabajados.length.toString(),
-          icon: Icons.work_outline,
-          color: colorScheme.primary,
+        Row(
+          children: [
+            _buildCard(
+              context,
+              label: 'Días Trabajados',
+              value: summary.diasTrabajados.length.toString(),
+              icon: Icons.calendar_today,
+              color: Colors.blue,
+            ),
+            const SizedBox(width: 8),
+            _buildCard(
+              context,
+              label: 'Días de Pago',
+              value: summary.diasPago.length.toString(),
+              icon: Icons.payments_outlined,
+              color: Colors.green,
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
-        _buildCard(
-          context,
-          label: 'Pagos',
-          value: summary.diasPago.length.toString(),
-          icon: Icons.payments_outlined,
-          color: Colors.green,
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            _buildCard(
+              context,
+              label: 'Total Semanal',
+              value: formatMonto(totalSemanal),
+              icon: Icons.trending_up,
+              color: Colors.purple,
+            ),
+            const SizedBox(width: 8),
+            _buildCard(
+              context,
+              label: 'Total Mensual',
+              value: formatMonto(totalMensual),
+              icon: Icons.bar_chart,
+              color: Colors.orange,
+            ),
+          ],
         ),
       ],
     );
@@ -50,106 +79,19 @@ class SummaryCards extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 value,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: color,
                 ),
+                textAlign: TextAlign.center,
               ),
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 11,
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class ChartPanel<T> extends StatelessWidget {
-  final List<T> data;
-  final String Function(T) getXLabel;
-  final double Function(T) getYValue;
-  final double Function(T) getAvg;
-  final Color color;
-
-  const ChartPanel({
-    super.key,
-    required this.data,
-    required this.getXLabel,
-    required this.getYValue,
-    required this.getAvg,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (data.isEmpty) return const SizedBox(height: 200, child: Center(child: Text('Sin datos')));
-
-    final avg = getAvg(data.first);
-
-    return SizedBox(
-      height: 200,
-      child: BarChart(
-        BarChartData(
-          gridData: const FlGridData(show: true, drawVerticalLine: false),
-          titlesData: FlTitlesData(
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 50,
-                getTitlesWidget: (value, meta) => Text(
-                  value >= 1000 ? '${(value / 1000).toStringAsFixed(0)}k' : value.toInt().toString(),
-                  style: const TextStyle(fontSize: 10),
-                ),
-              ),
-            ),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 25,
-                getTitlesWidget: (value, meta) {
-                  final idx = value.toInt();
-                  if (idx < 0 || idx >= data.length) return const SizedBox();
-                  return Text(
-                    getXLabel(data[idx]),
-                    style: const TextStyle(fontSize: 9),
-                  );
-                },
-              ),
-            ),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          ),
-          borderData: FlBorderData(show: false),
-          barGroups: data.asMap().entries.map((e) {
-            return BarChartGroupData(
-              x: e.key,
-              barRods: [
-                BarChartRodData(
-                  toY: getYValue(e.value),
-                  color: color,
-                  width: math.max(4, 200 / data.length - 4),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                ),
-              ],
-            );
-          }).toList(),
-          extraLinesData: ExtraLinesData(
-            horizontalLines: [
-              HorizontalLine(
-                y: avg,
-                color: Colors.green,
-                strokeWidth: 1.5,
-                dashArray: [5, 5],
-                label: HorizontalLineLabel(
-                  show: true,
-                  labelResolver: (_) => 'Prom: ${avg.toStringAsFixed(2)} BOB',
-                  style: const TextStyle(fontSize: 10, color: Colors.green),
-                ),
+                textAlign: TextAlign.center,
               ),
             ],
           ),

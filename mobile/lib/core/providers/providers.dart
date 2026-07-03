@@ -14,7 +14,7 @@ class IngresosParams {
 
   const IngresosParams({
     this.page = 1,
-    this.pageSize = 20,
+    this.pageSize = 1000,
     this.tipo,
     this.fechaInicio,
     this.fechaFin,
@@ -45,8 +45,14 @@ final ingresosProvider = FutureProvider.autoDispose.family<IngresoListResponse, 
   );
 });
 
+// Ingreso by ID
+final ingresoByIdProvider = FutureProvider.autoDispose.family<Ingreso, int>((ref, id) async {
+  final api = ref.read(apiClientProvider);
+  return api.getIngresoById(id);
+});
+
 // Fechas ocupadas
-final fechasOcupadasProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, ({int mes, int anio})>((ref, params) async {
+final fechasOcupadasProvider = FutureProvider.autoDispose.family<Map<String, List<String>>, ({int mes, int anio})>((ref, params) async {
   final api = ref.read(apiClientProvider);
   return api.getFechasOcupadas(params.mes, params.anio);
 });

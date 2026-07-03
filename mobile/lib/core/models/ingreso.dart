@@ -1,3 +1,25 @@
+class FechaTrabajo {
+  final DateTime fecha;
+  final int montoEnteros;
+  final String montoDisplay;
+
+  FechaTrabajo({
+    required this.fecha,
+    required this.montoEnteros,
+    required this.montoDisplay,
+  });
+
+  factory FechaTrabajo.fromJson(Map<String, dynamic> json) {
+    return FechaTrabajo(
+      fecha: DateTime.parse(json['fecha'] as String),
+      montoEnteros: json['monto_enteros'] as int,
+      montoDisplay: json['monto_display'] as String,
+    );
+  }
+
+  double get montoBOB => montoEnteros / 100.0;
+}
+
 class Ingreso {
   final int id;
   final DateTime fechaPago;
@@ -6,7 +28,7 @@ class Ingreso {
   final String tipo;
   final String? comentario;
   final String? imagenRuta;
-  final List<DateTime> fechasTrabajo;
+  final List<FechaTrabajo> fechasTrabajo;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -26,14 +48,14 @@ class Ingreso {
   factory Ingreso.fromJson(Map<String, dynamic> json) {
     return Ingreso(
       id: json['id'] as int,
-      fechaPago: DateTime.parse(json['fecha_pago'] as String),
+      fechaPago: _parseDate(json['fecha_pago'] as String),
       montoEnteros: json['monto_enteros'] as int,
       montoDisplay: json['monto_display'] as String,
       tipo: json['tipo'] as String,
       comentario: json['comentario'] as String?,
       imagenRuta: json['imagen_ruta'] as String?,
-      fechasTrabajo: (json['fechas_trabajo'] as List<dynamic>)
-          .map((e) => DateTime.parse(e as String))
+      fechasTrabajo: (json['fechas_trabajo'] as List<dynamic>? ?? [])
+          .map((e) => FechaTrabajo.fromJson(e as Map<String, dynamic>))
           .toList(),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -41,6 +63,13 @@ class Ingreso {
   }
 
   double get montoBOB => montoEnteros / 100.0;
+}
+
+DateTime _parseDate(String s) {
+  if (s.endsWith('Z')) {
+    return DateTime.parse(s.replaceAll('Z', ''));
+  }
+  return DateTime.parse(s);
 }
 
 class IngresoListResponse {
@@ -164,7 +193,7 @@ class CreateIngresoRequest {
   final String tipo;
   final String? comentario;
   final String? imagenRuta;
-  final List<String> fechasTrabajo;
+  final List<Map<String, String>> fechasTrabajo;
 
   CreateIngresoRequest({
     required this.fechaPago,
@@ -182,5 +211,23 @@ class CreateIngresoRequest {
         if (comentario != null) 'comentario': comentario,
         if (imagenRuta != null) 'imagen_ruta': imagenRuta,
         'fechas_trabajo': fechasTrabajo,
+      };
+}
+
+class UpdateIngresoRequest {
+  final int? montoEnteros;
+  final String? tipo;
+  final String? comentario;
+
+  UpdateIngresoRequest({
+    this.montoEnteros,
+    this.tipo,
+    this.comentario,
+  });
+
+  Map<String, dynamic> toJson() => {
+        if (montoEnteros != null) 'monto_enteros': montoEnteros,
+        if (tipo != null) 'tipo': tipo,
+        if (comentario != null) 'comentario': comentario,
       };
 }

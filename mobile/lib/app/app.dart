@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../core/theme/app_theme.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/registrar/registrar_screen.dart';
+import '../features/ingresos/ingresos_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -16,6 +17,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/registrar',
         builder: (context, state) => const RegistrarScreen(),
+      ),
+      GoRoute(
+        path: '/ingresos',
+        builder: (context, state) => const IngresosScreen(),
       ),
     ],
   );

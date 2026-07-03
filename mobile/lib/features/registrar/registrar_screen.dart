@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/providers/providers.dart';
 import '../../core/models/ingreso.dart';
 
@@ -24,11 +26,14 @@ class _RegistrarScreenState extends ConsumerState<RegistrarScreen> {
 
   final Set<DateTime> _diasTrabajo = {};
   DateTime? _diaPago;
-  final Set<String> _fechasExistentes = {};
+  final Map<String, List<String>> _fechasOcupadas = {};
 
   final _montoController = TextEditingController();
   String _tipo = 'semanal';
   final _comentarioController = TextEditingController();
+  File? _imagen;
+  String? _imagenPreview;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -40,16 +45,24 @@ class _RegistrarScreenState extends ConsumerState<RegistrarScreen> {
   void _loadFechasOcupadas() async {
     final data = await ref.read(apiClientProvider).getFechasOcupadas(_focusedDay.month, _focusedDay.year);
     setState(() {
-      _fechasExistentes.clear();
-      for (final key in data.keys) {
-        _fechasExistentes.add(key);
-      }
+      _fechasOcupadas.clear();
+      _fechasOcupadas.addAll(data);
     });
   }
 
+  bool _isOcupada(DateTime day) {
+    final dateKey = DateFormat('yyyy-MM-dd').format(day);
+    final tipos = _fechasOcupadas[dateKey];
+    return tipos != null && tipos.isNotEmpty;
+  }
+
+  List<String> _getTiposOcupada(DateTime day) {
+    final dateKey = DateFormat('yyyy-MM-dd').format(day);
+    return _fechasOcupadas[dateKey] ?? [];
+  }
+
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
-    final dateKey = DateFormat('yyyy-MM-dd').format(selectedDay);
-    if (_fechasExistentes.contains(dateKey)) return;
+    if (_isOcupada(selectedDay)) return;
 
     setState(() {
       _selectedDay = selectedDay;
@@ -57,11 +70,19 @@ class _RegistrarScreenState extends ConsumerState<RegistrarScreen> {
 
       switch (_currentTool) {
         case Tool.trabajo:
-          _diasTrabajo.removeWhere((d) => isSameDay(d, selectedDay));
-          _diasTrabajo.add(selectedDay);
+          final exists = _diasTrabajo.any((d) => isSameDay(d, selectedDay));
+          if (exists) {
+            _diasTrabajo.removeWhere((d) => isSameDay(d, selectedDay));
+          } else {
+            _diasTrabajo.add(selectedDay);
+          }
           break;
         case Tool.pago:
-          _diaPago = selectedDay;
+          if (_diaPago != null && isSameDay(_diaPago, selectedDay)) {
+            _diaPago = null;
+          } else {
+            _diaPago = selectedDay;
+          }
           break;
         case Tool.quitar:
           _diasTrabajo.removeWhere((d) => isSameDay(d, selectedDay));
@@ -71,6 +92,17 @@ class _RegistrarScreenState extends ConsumerState<RegistrarScreen> {
           break;
       }
     });
+  }
+
+  void _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (picked != null) {
+      setState(() {
+        _imagen = File(picked.path);
+        _imagenPreview = picked.path;
+      });
+    }
   }
 
   void _submit() async {
@@ -97,18 +129,34 @@ class _RegistrarScreenState extends ConsumerState<RegistrarScreen> {
       return;
     }
 
-    final montoCentavos = (montoBOB * 100).toInt();
-    final request = CreateIngresoRequest(
-      fechaPago: DateFormat('yyyy-MM-dd').format(_diaPago!),
-      montoEnteros: montoCentavos,
-      tipo: _tipo,
-      comentario: _comentarioController.text.trim().isEmpty ? null : _comentarioController.text.trim(),
-      fechasTrabajo: _diasTrabajo.map((d) => DateFormat('yyyy-MM-dd').format(d)).toList(),
-    );
+    setState(() => _isSubmitting = true);
 
     try {
-      await ref.read(apiClientProvider).createIngreso(request);
+      final sortedDays = _diasTrabajo.toList()..sort();
+      final request = CreateIngresoRequest(
+        fechaPago: DateFormat('yyyy-MM-dd').format(_diaPago!),
+        montoEnteros: (montoBOB * 100).toInt(),
+        tipo: _tipo,
+        comentario: _comentarioController.text.trim().isEmpty ? null : _comentarioController.text.trim(),
+        fechasTrabajo: sortedDays.map((d) => {'fecha': DateFormat('yyyy-MM-dd').format(d)}).toList(),
+      );
+
+      final api = ref.read(apiClientProvider);
+      final ingreso = await api.createIngreso(request);
+
+      if (_imagen != null) {
+        await api.uploadImage(_imagen!.path, ingresoId: ingreso.id);
+      }
+
       if (mounted) {
+        ref.invalidate(ingresosProvider);
+        ref.invalidate(fechasOcupadasProvider);
+        ref.invalidate(dashboardSummaryProvider);
+        ref.invalidate(dashboardWeeklyProvider);
+        ref.invalidate(dashboardMonthlyProvider);
+        ref.invalidate(dashboardYearlyProvider);
+        ref.invalidate(dashboardHistoryProvider);
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Ingreso registrado exitosamente'), backgroundColor: Colors.green),
         );
@@ -117,6 +165,8 @@ class _RegistrarScreenState extends ConsumerState<RegistrarScreen> {
           _diaPago = null;
           _montoController.clear();
           _comentarioController.clear();
+          _imagen = null;
+          _imagenPreview = null;
         });
         _loadFechasOcupadas();
       }
@@ -126,6 +176,8 @@ class _RegistrarScreenState extends ConsumerState<RegistrarScreen> {
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -155,10 +207,12 @@ class _RegistrarScreenState extends ConsumerState<RegistrarScreen> {
             const SizedBox(height: 12),
             Wrap(
               spacing: 12,
+              runSpacing: 4,
               children: [
                 _legendDot(Colors.blue, 'Trabajo (${_diasTrabajo.length})'),
                 _legendDot(Colors.green, 'Pago${_diaPago != null ? ' (${DateFormat('dd/MM').format(_diaPago!)})' : ''}'),
-                if (_fechasExistentes.isNotEmpty) _legendDot(Colors.grey, 'Existente'),
+                _legendDot(Colors.blue, 'Existente', border: true),
+                _legendDot(Colors.green, 'Pago existente', border: true),
               ],
             ),
             const SizedBox(height: 12),
@@ -184,29 +238,47 @@ class _RegistrarScreenState extends ConsumerState<RegistrarScreen> {
               ),
               calendarBuilders: CalendarBuilders(
                 defaultBuilder: (context, day, focusedDay) {
-                  final dateKey = DateFormat('yyyy-MM-dd').format(day);
                   final isTrabajo = _diasTrabajo.any((d) => isSameDay(d, day));
                   final isPago = _diaPago != null && isSameDay(_diaPago, day);
-                  final isExistent = _fechasExistentes.contains(dateKey);
+                  final tipos = _getTiposOcupada(day);
+                  final isExistentTrabajo = tipos.contains('trabajo');
+                  final isExistentPago = tipos.contains('pago');
 
                   Color? bgColor;
+                  Color? borderColor;
                   Color? textColor;
-                  if (isPago) {
+
+                  if (isPago && isTrabajo) {
+                    bgColor = Colors.green;
+                    borderColor = Colors.blue;
+                    textColor = Colors.white;
+                  } else if (isPago) {
                     bgColor = Colors.green;
                     textColor = Colors.white;
                   } else if (isTrabajo) {
-                    bgColor = Colors.blue;
-                    textColor = Colors.white;
-                  } else if (isExistent) {
-                    bgColor = Colors.grey[400];
-                    textColor = Colors.white;
+                    borderColor = Colors.blue;
+                    textColor = Colors.blue;
+                  } else if (isExistentTrabajo && isExistentPago) {
+                    bgColor = Colors.blue[200];
+                    borderColor = Colors.green;
+                    textColor = Colors.blue[900];
+                  } else if (isExistentTrabajo) {
+                    bgColor = Colors.blue[200];
+                    textColor = Colors.blue[900];
+                  } else if (isExistentPago) {
+                    borderColor = Colors.green;
+                    textColor = Colors.green;
                   }
 
                   return Container(
                     margin: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      shape: BoxShape.circle,
+                      border: borderColor != null ? Border.all(color: borderColor, width: 2) : null,
+                    ),
                     alignment: Alignment.center,
-                    child: Text('${day.day}', style: TextStyle(color: textColor ?? theme.colorScheme.onSurface)),
+                    child: Text('${day.day}', style: TextStyle(color: textColor ?? theme.colorScheme.onSurface, fontWeight: FontWeight.w500)),
                   );
                 },
               ),
@@ -244,11 +316,26 @@ class _RegistrarScreenState extends ConsumerState<RegistrarScreen> {
               ),
               maxLines: 2,
             ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _pickImage,
+              icon: const Icon(Icons.image_outlined),
+              label: Text(_imagen != null ? 'Imagen seleccionada' : 'Seleccionar imagen'),
+            ),
+            if (_imagenPreview != null) ...[
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.file(_imagen!, height: 150, fit: BoxFit.cover),
+              ),
+            ],
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: _submit,
-              icon: const Icon(Icons.save),
-              label: const Text('Registrar Ingreso'),
+              onPressed: _isSubmitting ? null : _submit,
+              icon: _isSubmitting
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.save),
+              label: Text(_isSubmitting ? 'Registrando...' : 'Registrar Ingreso'),
               style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
             ),
           ],
@@ -258,13 +345,21 @@ class _RegistrarScreenState extends ConsumerState<RegistrarScreen> {
     );
   }
 
-  Widget _legendDot(Color color, String label) {
+  Widget _legendDot(Color color, String label, {bool border = false}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: border ? null : color,
+            shape: BoxShape.circle,
+            border: border ? Border.all(color: color, width: 2) : null,
+          ),
+        ),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 12)),
+        Text(label, style: const TextStyle(fontSize: 11)),
       ],
     );
   }
@@ -280,11 +375,15 @@ class _RegistrarScreenState extends ConsumerState<RegistrarScreen> {
           case 1:
             context.go('/registrar');
             break;
+          case 2:
+            context.go('/ingresos');
+            break;
         }
       },
       destinations: const [
         NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Dashboard'),
         NavigationDestination(icon: Icon(Icons.add_circle_outline), selectedIcon: Icon(Icons.add_circle), label: 'Registrar'),
+        NavigationDestination(icon: Icon(Icons.list_outlined), selectedIcon: Icon(Icons.list), label: 'Ingresos'),
       ],
     );
   }

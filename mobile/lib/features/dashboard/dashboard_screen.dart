@@ -64,7 +64,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               summaryAsync.when(
-                data: (s) => SummaryCards(summary: s, month: _currentMonth),
+                data: (s) {
+                  final weeklyTotal = weeklyAsync.maybeWhen(
+                    data: (w) => w.fold<int>(0, (sum, d) => sum + d.monto),
+                    orElse: () => 0,
+                  );
+                  final monthlyTotal = monthlyAsync.maybeWhen(
+                    data: (m) => m.fold<int>(0, (sum, d) => sum + d.monto),
+                    orElse: () => 0,
+                  );
+                  return SummaryCards(summary: s, totalSemanal: weeklyTotal, totalMensual: monthlyTotal);
+                },
                 loading: () => const SizedBox(height: 120, child: Center(child: CircularProgressIndicator())),
                 error: (e, _) => Card(child: Padding(padding: const EdgeInsets.all(16), child: Text('Error: $e'))),
               ),
@@ -395,11 +405,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           case 1:
             context.go('/registrar');
             break;
+          case 2:
+            context.go('/ingresos');
+            break;
         }
       },
       destinations: const [
         NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Dashboard'),
         NavigationDestination(icon: Icon(Icons.add_circle_outline), selectedIcon: Icon(Icons.add_circle), label: 'Registrar'),
+        NavigationDestination(icon: Icon(Icons.list_outlined), selectedIcon: Icon(Icons.list), label: 'Ingresos'),
       ],
     );
   }
