@@ -18,7 +18,7 @@ export interface Ingreso {
   fecha_pago: string
   monto_enteros: number
   monto_display: string
-  tipo: 'diario' | 'semanal'
+  tipo: 'qr' | 'efectivo'
   comentario: string | null
   imagen_ruta: string | null
   fechas_trabajo: FechaTrabajo[]
@@ -36,7 +36,7 @@ export interface IngresoListResponse {
 export interface CreateIngresoRequest {
   fecha_pago: string
   monto_enteros: number
-  tipo: 'diario' | 'semanal'
+  tipo: 'qr' | 'efectivo'
   comentario?: string
   imagen_ruta?: string
   fechas_trabajo: { fecha: string }[]
@@ -53,10 +53,16 @@ export interface DashboardWeeklyResponse {
   promedio: number
 }
 
+export interface DashboardMonthlyDay {
+  fecha: string
+  monto: number
+}
+
 export interface DashboardMonthlyResponse {
   semana: string
   monto: number
   promedio: number
+  dias: DashboardMonthlyDay[]
 }
 
 export interface DashboardYearlyResponse {
@@ -69,6 +75,7 @@ export interface DashboardHistoryResponse {
   fecha: string
   monto: number
   promedio: number
+  promedio_global: number
 }
 
 export interface SQLExecuteResponse {

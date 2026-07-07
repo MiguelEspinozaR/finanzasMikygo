@@ -95,10 +95,20 @@ func (s *DashboardService) GetMonthly(ctx context.Context, year, month int) ([]d
 
 	var result []dto.DashboardMonthlyResponse
 	for _, d := range data {
+		var dias []dto.DashboardMonthlyDayResponse
+		if rawDias, ok := d["dias"].([]map[string]interface{}); ok {
+			for _, dia := range rawDias {
+				dias = append(dias, dto.DashboardMonthlyDayResponse{
+					Fecha: dia["fecha"].(string),
+					Monto: dia["monto"].(int64),
+				})
+			}
+		}
 		result = append(result, dto.DashboardMonthlyResponse{
 			Semana:   d["semana"].(string),
 			Monto:    d["monto"].(int64),
 			Promedio: promedio,
+			Dias:     dias,
 		})
 	}
 	return result, nil
@@ -139,9 +149,10 @@ func (s *DashboardService) GetHistory(ctx context.Context) ([]dto.DashboardHisto
 	var result []dto.DashboardHistoryResponse
 	for _, d := range data {
 		result = append(result, dto.DashboardHistoryResponse{
-			Fecha:    d["fecha"].(string),
-			Monto:    d["monto"].(int64),
-			Promedio: d["promedio"].(int64),
+			Mes:            d["mes"].(string),
+			Monto:          d["monto"].(int64),
+			Promedio:       d["promedio"].(int64),
+			PromedioGlobal: d["promedio_global"].(int64),
 		})
 	}
 	return result, nil

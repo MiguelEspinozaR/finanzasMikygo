@@ -15,7 +15,7 @@ export default function RegistrarIngreso() {
   const [selectedWorkDays, setSelectedWorkDays] = useState<string[]>([])
   const [selectedPaymentDay, setSelectedPaymentDay] = useState<string | null>(null)
   const [monto, setMonto] = useState('')
-  const [tipo, setTipo] = useState<'diario' | 'semanal'>('semanal')
+  const [tipo, setTipo] = useState<'qr' | 'efectivo'>('qr')
   const [comentario, setComentario] = useState('')
   const [imagen, setImagen] = useState<File | null>(null)
   const [imagenPreview, setImagenPreview] = useState<string | null>(null)
@@ -283,11 +283,11 @@ export default function RegistrarIngreso() {
               </label>
               <select
                 value={tipo}
-                onChange={e => setTipo(e.target.value as 'diario' | 'semanal')}
+                onChange={e => setTipo(e.target.value as 'qr' | 'efectivo')}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
-                <option value="diario">Diario</option>
-                <option value="semanal">Semanal</option>
+                <option value="qr">QR</option>
+                <option value="efectivo">Efectivo</option>
               </select>
             </div>
 

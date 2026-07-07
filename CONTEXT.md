@@ -12,6 +12,7 @@ Aplicación multiplataforma (Web + Android) para gestionar ingresos laborales co
 | DB Migrations | SQL scripts manuales |
 | API Docs | swaggo/gin-swagger |
 | Config | godotenv |
+| Timezone | America/La_Paz (UTC-4) |
 | Web Frontend | React 19 + Vite + TypeScript |
 | Estilos | Tailwind CSS v3 |
 | Gráficos | Recharts |
@@ -32,26 +33,29 @@ finanzasMikygo/
 ├── backend/
 │   ├── cmd/server/main.go
 │   ├── internal/
-│   │   ├── config/config.go
+│   │   ├── config/config.go          # Location = America/La_Paz
 │   │   ├── database/postgres.go
 │   │   ├── handler/
 │   │   │   ├── ingreso_handler.go
 │   │   │   ├── dashboard_handler.go
 │   │   │   └── sql_handler.go
 │   │   ├── service/
-│   │   │   ├── ingreso_service.go
+│   │   │   ├── ingreso_service.go    # splitMonto, ParseInLocation
 │   │   │   └── dashboard_service.go
 │   │   ├── repository/
 │   │   │   ├── ingreso_repository.go
 │   │   │   └── dashboard_repository.go
-│   │   ├── model/ingreso.go
-│   │   ├── dto/ingreso_dto.go
+│   │   ├── model/ingreso.go          # FechaTrabajo struct
+│   │   ├── dto/ingreso_dto.go        # FechaTrabajoRequest/Response
 │   │   ├── router/router.go
 │   │   └── middleware/cors.go
 │   ├── migrations/
 │   │   ├── 001_create_ingresos.up.sql
 │   │   ├── 002_migrate_data_23_24.up.sql
 │   │   ├── 003_migrate_data_25_26.up.sql
+│   │   ├── 004_fill_missing_work_dates.up.sql
+│   │   ├── 005_add_monto_to_fechas_trabajo.up.sql
+│   │   ├── 006_backfill_monto_fechas_trabajo.sql
 │   │   └── *.down.sql
 │   ├── uploads/
 │   ├── docs/
@@ -61,7 +65,7 @@ finanzasMikygo/
 │   ├── src/
 │   │   ├── features/dashboard/Dashboard.tsx
 │   │   ├── features/registrar/RegistrarIngreso.tsx
-│   │   ├── features/lista/ListaIngresos.tsx
+│   │   ├── features/ingresos/Ingresos.tsx
 │   │   ├── features/sql/SQLTab.tsx
 │   │   ├── services/api.ts
 │   │   ├── context/ThemeContext.tsx
@@ -76,15 +80,16 @@ finanzasMikygo/
 │   │   ├── core/
 │   │   │   ├── theme/app_theme.dart
 │   │   │   ├── network/api_client.dart
-│   │   │   ├── models/ingreso.dart
+│   │   │   ├── models/ingreso.dart   # FechaTrabajo, UpdateIngresoRequest
 │   │   │   └── providers/providers.dart
 │   │   └── features/
 │   │       ├── dashboard/
 │   │       │   ├── dashboard_screen.dart
 │   │       │   └── widgets/summary_cards.dart
 │   │       ├── registrar/registrar_screen.dart
-│   │       └── lista/lista_screen.dart
-│   └── pubspec.yaml
+│   │       └── ingresos/ingresos_screen.dart
+│   ├── pubspec.yaml
+│   └── android/
 ├── CONTEXT.md
 ├── run.bat
 ├── .env.example
@@ -109,6 +114,7 @@ CREATE TABLE ingreso_fechas_trabajo (
     id SERIAL PRIMARY KEY,
     ingreso_id INTEGER NOT NULL REFERENCES ingresos(id) ON DELETE CASCADE,
     fecha_trabajo DATE NOT NULL,
+    monto_enteros BIGINT NOT NULL DEFAULT 0,  -- monto distribuido por día
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ```
@@ -117,22 +123,23 @@ CREATE TABLE ingreso_fechas_trabajo (
 
 | Archivo | Registros | Fechas Trabajo | Período |
 |---------|-----------|----------------|---------|
-| 002_migrate_data_23_24.up.sql | 90 ingresos | No (sin datos) | 2023-04-17 a 2024-12-30 |
-| 003_migrate_data_25_26.up.sql | 83 ingresos + 223 fechas | Sí (agrupados por pago) | 2025-01-06 a 2026-06-08 |
-| **Total** | **173 ingresos** | **223 fechas** | **2023-2026** |
+| 002_migrate_data_23_24.up.sql | 90 ingresos | 90 (fill_missing) | 2023-04-17 a 2024-12-30 |
+| 003_migrate_data_25_26.up.sql | 83 ingresos | 223 | 2025-01-06 a 2026-06-08 |
+| 005 + 006 (backfill) | — | 313 (con montos) | — |
+| **Total** | **173 ingresos** | **313 fechas** | **2023-2026** |
 
 Scripts SQL guardados en `backend/migrations/` para re-ejecución futura.
 
 ## API Endpoints
 
 ```
-POST   /api/v1/ingresos              # Crear ingreso
+POST   /api/v1/ingresos              # Crear ingreso (splitMonto automático)
 GET    /api/v1/ingresos              # Listar (filtros: fecha_inicio, fecha_fin, tipo, page, page_size)
 GET    /api/v1/ingresos/:id          # Obtener por ID
 PUT    /api/v1/ingresos/:id          # Actualizar
 DELETE /api/v1/ingresos/:id          # Eliminar
-POST   /api/v1/ingresos/upload       # Subir imagen
-GET    /api/v1/ingresos/fechas-ocupadas?mes=&anio=  # Fechas ocupadas en calendario
+POST   /api/v1/ingresos/upload       # Subir imagen (acepta ingreso_id → pago_{id}.{ext})
+GET    /api/v1/ingresos/fechas-ocupadas?mes=&anio=  # Fechas ocupadas (map[string][]string)
 
 GET    /api/v1/dashboard/summary?mes=&anio=          # Días trabajados/pago del mes
 GET    /api/v1/dashboard/weekly?fecha=YYYY-MM-DD     # Ingresos semana (barras diarias)
@@ -153,11 +160,39 @@ GET    /swagger/*any                 # Swagger UI
 - En UI/API: siempre "XXX.XX BOB"
 - Conversión: `monto_bob = monto_enteros / 100`
 
+### Distribución de Monto (splitMonto)
+- **semanal**: `FLOOR(total / n)` para los primeros n-1 días, residuo en el último
+- **diario**: el monto completo va a cada día
+- Aplicado al crear, actualizar, y en backfill (006)
+
+### Fechas Ocupadas
+- Retorna `map[string][]string` — cada fecha puede tener `["trabajo"]`, `["pago"]`, o `["trabajo","pago"]`
+- Permite que trabajo y pago coincidan en la misma fecha
+
+### Timezone
+- Backend: `time.ParseInLocation` con `America/La_Paz` (UTC-4)
+- Frontend web: `new Date(str.replace('T00:00:00Z', 'T00:00:00'))` para forzar hora local
+
 ### Dashboard
 - Navegación **independiente** por panel: semanas ← →, meses ← →, años ← →
 - Panel semanal: acepta `?fecha=YYYY-MM-DD` para semana de referencia
 - Panel histórico: línea de promedio **global constante** (no acumulada)
 - Cards resumen: Días Trabajados, Días de Pago, Total Semanal, Total Mensual
+
+### Calendario (Registrar Ingreso)
+- Vista mensual con 3 herramientas: Trabajo, Pago, Quitar
+- Trabajo y pago **pueden coincidir** en la misma fecha
+- Trabajo seleccionado: borde azul (`border-2 border-blue-500`)
+- Pago seleccionado: fondo verde (`bg-green-500`)
+- Ambos: fondo verde + borde azul
+- Trabajo registrado (histórico): fondo azul claro
+- Pago registrado (histórico): borde verde
+- Ambos registrados: fondo azul claro + borde verde
+- Días de registros anteriores: inmutables
+
+### Upload de Imagen
+- Flujo: crear ingreso → upload con `ingreso_id` → backend guarda como `pago_{id}.{ext}`
+- Si no se provee `ingreso_id`, guarda como `upload_{timestamp}.{ext}`
 
 ### SQL Tab (solo dev)
 - Editor de queries SQL
@@ -165,12 +200,6 @@ GET    /swagger/*any                 # Swagger UI
 - Montos en BOB (columnas `monto_enteros` o `monto`)
 - IDs y otros números **sin formatear**
 - Esquema de tablas visible
-
-### Calendario (Registrar Ingreso)
-- Vista mensual con 3 herramientas: Trabajo, Pago, Quitar
-- Días de registros anteriores: inmutables
-- Tipo diario: 1 trabajo → 1 pago
-- Tipo semanal: N trabajos → 1 pago
 
 ## Variables de Entorno
 
@@ -208,14 +237,14 @@ cd mobile && flutter run                    # Emulador/dispositivo
 | API Dashboard | ✅ Completo |
 | Swagger docs | ✅ Generado |
 | SQL Tab backend | ✅ Completo |
-| DB + Migraciones | ✅ Ejecutadas (173 registros) |
+| DB + Migraciones | ✅ Ejecutadas (173 registros, 313 fechas_trabajo) |
+| Timezone (La_Paz) | ✅ Implementado |
 | Web React + Tailwind | ✅ Completo |
 | Dashboard con navegación | ✅ Completo |
 | Registrar Ingreso (calendario) | ✅ Completo |
-| Lista de Ingresos | ✅ Completo |
+| Ingresos (año agrupado, editar, eliminar) | ✅ Completo |
 | SQL Tab frontend | ✅ Completo |
 | Dark/Light mode | ✅ Completo |
-| Flutter scaffold | ✅ Estructura creada |
-| Flutter Dashboard | ✅ Completo |
-| Flutter Registrar | ✅ Completo |
-| Flutter Lista | ✅ Completo |
+| Flutter Dashboard (4 cards, 4 gráficos) | ✅ Completo |
+| Flutter Registrar (calendario, imagen, tools) | ✅ Completo |
+| Flutter Ingresos (año agrupado, editar, eliminar, filtros) | ✅ Completo |

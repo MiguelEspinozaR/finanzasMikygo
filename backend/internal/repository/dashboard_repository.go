@@ -47,26 +47,51 @@ func (r *DashboardRepository) GetWeeklyData(ctx context.Context, weekStart time.
 
 func (r *DashboardRepository) GetMonthlyData(ctx context.Context, year, month int) ([]map[string]interface{}, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT EXTRACT(WEEK FROM fecha_pago) as semana, SUM(monto_enteros) as total
-		 FROM ingresos
-		 WHERE EXTRACT(YEAR FROM fecha_pago) = $1 AND EXTRACT(MONTH FROM fecha_pago) = $2
-		 GROUP BY semana
-		 ORDER BY semana`, year, month)
+		`SELECT EXTRACT(WEEK FROM ift.fecha_trabajo) as semana,
+		        ift.fecha_trabajo::text as fecha, ift.monto_enteros
+		 FROM ingreso_fechas_trabajo ift
+		 WHERE EXTRACT(YEAR FROM ift.fecha_trabajo) = $1
+		   AND EXTRACT(MONTH FROM ift.fecha_trabajo) = $2
+		 ORDER BY semana, ift.fecha_trabajo`, year, month)
 	if err != nil {
 		return nil, fmt.Errorf("query monthly: %w", err)
 	}
 	defer rows.Close()
 
-	var result []map[string]interface{}
+	type weekData struct {
+		semana string
+		monto  int64
+		dias   []map[string]interface{}
+	}
+
+	weeks := make(map[int]*weekData)
+	var weekOrder []int
+
 	for rows.Next() {
 		var semana int
-		var total int64
-		if err := rows.Scan(&semana, &total); err != nil {
+		var fecha string
+		var monto int64
+		if err := rows.Scan(&semana, &fecha, &monto); err != nil {
 			return nil, fmt.Errorf("scan monthly: %w", err)
 		}
+		if _, exists := weeks[semana]; !exists {
+			weeks[semana] = &weekData{semana: fmt.Sprintf("Sem %d", semana)}
+			weekOrder = append(weekOrder, semana)
+		}
+		weeks[semana].monto += monto
+		weeks[semana].dias = append(weeks[semana].dias, map[string]interface{}{
+			"fecha": fecha,
+			"monto": monto,
+		})
+	}
+
+	var result []map[string]interface{}
+	for _, semana := range weekOrder {
+		w := weeks[semana]
 		result = append(result, map[string]interface{}{
-			"semana": fmt.Sprintf("Sem %d", semana),
-			"monto":  total,
+			"semana": w.semana,
+			"monto":  w.monto,
+			"dias":   w.dias,
 		})
 	}
 	return result, nil
@@ -101,20 +126,21 @@ func (r *DashboardRepository) GetYearlyData(ctx context.Context, year int) ([]ma
 }
 
 func (r *DashboardRepository) GetHistoryData(ctx context.Context) ([]map[string]interface{}, error) {
-	// First get global average
 	var globalAvg int64
 	err := r.db.QueryRow(ctx,
 		`SELECT COALESCE(CAST(SUM(monto_enteros) / NULLIF(COUNT(*), 0) AS BIGINT), 0)
-		 FROM ingresos`).Scan(&globalAvg)
+		 FROM ingreso_fechas_trabajo`).Scan(&globalAvg)
 	if err != nil {
 		return nil, fmt.Errorf("query global avg: %w", err)
 	}
 
 	rows, err := r.db.Query(ctx,
-		`SELECT fecha_pago, SUM(monto_enteros) as total
-		 FROM ingresos
-		 GROUP BY fecha_pago
-		 ORDER BY fecha_pago`)
+		`SELECT to_char(ift.fecha_trabajo, 'YYYY-MM') as mes,
+		        SUM(ift.monto_enteros) as total,
+		        COUNT(*) as dias_trabajados
+		 FROM ingreso_fechas_trabajo ift
+		 GROUP BY mes
+		 ORDER BY mes`)
 	if err != nil {
 		return nil, fmt.Errorf("query history: %w", err)
 	}
@@ -122,15 +148,21 @@ func (r *DashboardRepository) GetHistoryData(ctx context.Context) ([]map[string]
 
 	var result []map[string]interface{}
 	for rows.Next() {
-		var fecha time.Time
+		var mes string
 		var total int64
-		if err := rows.Scan(&fecha, &total); err != nil {
+		var diasTrabajados int64
+		if err := rows.Scan(&mes, &total, &diasTrabajados); err != nil {
 			return nil, fmt.Errorf("scan history: %w", err)
 		}
+		promedio := int64(0)
+		if diasTrabajados > 0 {
+			promedio = total / diasTrabajados
+		}
 		result = append(result, map[string]interface{}{
-			"fecha":    fecha.Format("2006-01-02"),
-			"monto":    total,
-			"promedio": globalAvg,
+			"mes":            mes,
+			"monto":          total,
+			"promedio":       promedio,
+			"promedio_global": globalAvg,
 		})
 	}
 	return result, nil

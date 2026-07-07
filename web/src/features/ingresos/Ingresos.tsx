@@ -46,7 +46,7 @@ export default function Ingresos() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { monto_enteros: number; tipo: 'diario' | 'semanal'; comentario: string } }) =>
+    mutationFn: ({ id, data }: { id: number; data: { monto_enteros: number; tipo: 'qr' | 'efectivo'; comentario: string } }) =>
       ingresosApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingresos'] })
@@ -89,8 +89,8 @@ export default function Ingresos() {
               className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="">Todos</option>
-              <option value="diario">Diario</option>
-              <option value="semanal">Semanal</option>
+              <option value="qr">QR</option>
+              <option value="efectivo">Efectivo</option>
             </select>
           </div>
           <div>
@@ -193,11 +193,11 @@ export default function Ingresos() {
                             </td>
                             <td className="px-4 py-2">
                               <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                ing.tipo === 'diario'
-                                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
-                                  : 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300'
+                                ing.tipo === 'qr'
+                                  ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-300'
+                                  : 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300'
                               }`}>
-                                {ing.tipo}
+                                {ing.tipo === 'qr' ? 'QR' : 'Efectivo'}
                               </span>
                             </td>
                             <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">
@@ -247,11 +247,11 @@ export default function Ingresos() {
 function EditModal({ ingreso, onClose, onSave, isSaving }: {
   ingreso: Ingreso
   onClose: () => void
-  onSave: (data: { monto_enteros: number; tipo: 'diario' | 'semanal'; comentario: string }) => void
+  onSave: (data: { monto_enteros: number; tipo: 'qr' | 'efectivo'; comentario: string }) => void
   isSaving: boolean
 }) {
   const [monto, setMonto] = useState((ingreso.monto_enteros / 100).toString())
-  const [tipo, setTipo] = useState<'diario' | 'semanal'>(ingreso.tipo)
+  const [tipo, setTipo] = useState<'qr' | 'efectivo'>(ingreso.tipo)
   const [comentario, setComentario] = useState(ingreso.comentario || '')
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -291,11 +291,11 @@ function EditModal({ ingreso, onClose, onSave, isSaving }: {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
               <select
                 value={tipo}
-                onChange={e => setTipo(e.target.value as 'diario' | 'semanal')}
+                onChange={e => setTipo(e.target.value as 'qr' | 'efectivo')}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
-                <option value="semanal">Semanal</option>
-                <option value="diario">Diario</option>
+                <option value="qr">QR</option>
+                <option value="efectivo">Efectivo</option>
               </select>
             </div>
             <div>

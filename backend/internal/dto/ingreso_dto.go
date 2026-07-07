@@ -12,7 +12,7 @@ type FechaTrabajoRequest struct {
 type CreateIngresoRequest struct {
 	FechaPago     string                  `json:"fecha_pago" binding:"required"`
 	MontoEnteros  int64                   `json:"monto_enteros" binding:"required,gt=0"`
-	Tipo          string                  `json:"tipo" binding:"required,oneof=diario semanal"`
+	Tipo          string                  `json:"tipo" binding:"required,oneof=qr efectivo"`
 	Comentario    *string                 `json:"comentario"`
 	ImagenRuta    *string                 `json:"imagen_ruta"`
 	FechasTrabajo []FechaTrabajoRequest   `json:"fechas_trabajo" binding:"required,min=1"`
@@ -21,7 +21,7 @@ type CreateIngresoRequest struct {
 type UpdateIngresoRequest struct {
 	FechaPago     *string                 `json:"fecha_pago"`
 	MontoEnteros  *int64                  `json:"monto_enteros"`
-	Tipo          *string                 `json:"tipo" binding:"omitempty,oneof=diario semanal"`
+	Tipo          *string                 `json:"tipo" binding:"omitempty,oneof=qr efectivo"`
 	Comentario    *string                 `json:"comentario"`
 	ImagenRuta    *string                 `json:"imagen_ruta"`
 	FechasTrabajo []FechaTrabajoRequest   `json:"fechas_trabajo"`
@@ -64,10 +64,16 @@ type DashboardWeeklyResponse struct {
 	Promedio int64  `json:"promedio"`
 }
 
+type DashboardMonthlyDayResponse struct {
+	Fecha string `json:"fecha"`
+	Monto int64  `json:"monto"`
+}
+
 type DashboardMonthlyResponse struct {
-	Semana   string `json:"semana"`
-	Monto    int64  `json:"monto"`
-	Promedio int64  `json:"promedio"`
+	Semana   string                       `json:"semana"`
+	Monto    int64                        `json:"monto"`
+	Promedio int64                        `json:"promedio"`
+	Dias     []DashboardMonthlyDayResponse `json:"dias"`
 }
 
 type DashboardYearlyResponse struct {
@@ -77,9 +83,10 @@ type DashboardYearlyResponse struct {
 }
 
 type DashboardHistoryResponse struct {
-	Fecha    string `json:"fecha"`
-	Monto    int64  `json:"monto"`
-	Promedio int64  `json:"promedio"`
+	Mes            string `json:"mes"`
+	Monto          int64  `json:"monto"`
+	Promedio       int64  `json:"promedio"`
+	PromedioGlobal int64  `json:"promedio_global"`
 }
 
 type SQLExecuteRequest struct {
