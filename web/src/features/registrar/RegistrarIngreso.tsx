@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Briefcase, CreditCard, X, CheckCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Briefcase, CreditCard, X, CheckCircle, Upload, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { ingresosApi, CreateIngresoRequest } from '../../services/api'
 
@@ -19,6 +19,7 @@ export default function RegistrarIngreso() {
   const [comentario, setComentario] = useState('')
   const [imagen, setImagen] = useState<File | null>(null)
   const [imagenPreview, setImagenPreview] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   const month = currentDate.getMonth() + 1
   const year = currentDate.getFullYear()
@@ -65,11 +66,11 @@ export default function RegistrarIngreso() {
 
   const handleDayClick = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd')
-    const ocupada = fechasOcupadas?.data?.[dateStr]
-
-    if (ocupada && ocupada.length > 0) return
+    const ocupada = fechasOcupadas?.data?.[dateStr] || []
+    const tienePago = ocupada.includes('pago')
 
     if (activeTool === 'trabajo') {
+      if (tienePago) return
       setSelectedWorkDays(prev =>
         prev.includes(dateStr)
           ? prev.filter(d => d !== dateStr)
@@ -91,6 +92,35 @@ export default function RegistrarIngreso() {
       reader.onload = () => setImagenPreview(reader.result as string)
       reader.readAsDataURL(file)
     }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      setImagen(file)
+      const reader = new FileReader()
+      reader.onload = () => setImagenPreview(reader.result as string)
+      reader.readAsDataURL(file)
+    } else {
+      toast.error('Solo se permiten archivos de imagen')
+    }
+  }
+
+  const removeImage = () => {
+    setImagen(null)
+    setImagenPreview(null)
   }
 
   const handleSubmit = async () => {
@@ -133,9 +163,9 @@ export default function RegistrarIngreso() {
     const hasTrabajo = ocupada.includes('trabajo')
     const hasPago = ocupada.includes('pago')
 
-    if (hasTrabajo && hasPago) return 'bg-blue-200 dark:bg-blue-800 border-2 border-green-500 text-blue-800 dark:text-blue-200 cursor-not-allowed'
-    if (hasTrabajo) return 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 cursor-not-allowed'
-    if (hasPago) return 'border-2 border-green-500 text-green-600 dark:text-green-400 cursor-not-allowed'
+    if (hasTrabajo && hasPago) return 'bg-blue-200 dark:bg-blue-800 border-2 border-green-500 text-blue-800 dark:text-blue-200'
+    if (hasTrabajo) return 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
+    if (hasPago) return activeTool === 'trabajo' ? 'border-2 border-green-500 text-green-600 dark:text-green-400 cursor-not-allowed' : 'border-2 border-green-500 text-green-600 dark:text-green-400'
 
     if (isSelectedWork && isSelectedPayment) return 'bg-green-500 text-white border-2 border-blue-500'
     if (isSelectedWork) return 'border-2 border-blue-500 text-blue-600 dark:text-blue-400'
@@ -243,7 +273,7 @@ export default function RegistrarIngreso() {
               <button
                 key={date.toISOString()}
                 onClick={() => handleDayClick(date)}
-                disabled={(fechasOcupadas?.data?.[format(date, 'yyyy-MM-dd')] || []).length > 0}
+                disabled={activeTool === 'trabajo' && (fechasOcupadas?.data?.[format(date, 'yyyy-MM-dd')] || []).includes('pago')}
                 className={`aspect-square p-2 rounded-lg text-sm font-medium transition-all ${getDayClass(date)}`}
               >
                 {format(date, 'd')}
@@ -322,14 +352,41 @@ export default function RegistrarIngreso() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Imagen del comprobante (opcional)
               </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-              {imagenPreview && (
-                <img src={imagenPreview} alt="Preview" className="mt-2 w-full h-32 object-cover rounded-lg" />
+              {imagenPreview ? (
+                <div className="relative">
+                  <img src={imagenPreview} alt="Preview" className="w-full h-40 object-cover rounded-lg border border-gray-200 dark:border-gray-600" />
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => document.getElementById('file-input-registrar')?.click()}
+                  className={`flex flex-col items-center justify-center gap-2 px-4 py-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                    isDragging
+                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                      : 'border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500'
+                  }`}
+                >
+                  <Upload className={`w-8 h-8 ${isDragging ? 'text-primary-500' : 'text-gray-400'}`} />
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    Arrastra una imagen aquí o haz clic para seleccionar
+                  </span>
+                  <input
+                    id="file-input-registrar"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </div>
               )}
             </div>
 

@@ -186,8 +186,11 @@ export default function Ingresos() {
                         {items.map((ing, idx) => {
                           const showDate = idx === 0 || items[idx - 1].fecha_pago !== ing.fecha_pago
                           const groupCount = items.filter(i => i.fecha_pago === ing.fecha_pago).length
+                          const isLastInGroup = idx === items.length - 1 || items[idx + 1].fecha_pago !== ing.fecha_pago
+                          const groupMonto = groupCount > 1 ? items.filter(i => i.fecha_pago === ing.fecha_pago).reduce((sum, i) => sum + i.monto_enteros, 0) : 0
                           return (
-                            <tr key={ing.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <>
+                            <tr key={ing.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${groupCount > 1 ? 'bg-gray-50/50 dark:bg-gray-800/30' : ''}`}>
                               <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">{ing.id}</td>
                               <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">
                                 {showDate ? (
@@ -250,6 +253,18 @@ export default function Ingresos() {
                                 </div>
                               </td>
                             </tr>
+                            {isLastInGroup && groupCount > 1 && (
+                              <tr className="bg-gray-100 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-600">
+                                <td colSpan={3} className="px-4 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 text-right">
+                                  Subtotal ({groupCount} ingresos)
+                                </td>
+                                <td className="px-4 py-1.5 text-sm font-semibold text-green-700 dark:text-green-300">
+                                  {(groupMonto / 100).toFixed(2)} BOB
+                                </td>
+                                <td colSpan={2}></td>
+                              </tr>
+                            )}
+                            </>
                           )
                         })}
                       </tbody>
