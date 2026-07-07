@@ -25,9 +25,8 @@ if "%opt%"=="5" goto exit_app
 goto menu
 
 :start_all
-echo Iniciando Backend ^y Frontend...
-start "Backend - :8080" /D "%~dp0backend" cmd /c "go run cmd/server/main.go"
-start "Frontend - :5173" /D "%~dp0web" cmd /c "npm run dev"
+echo Iniciando Backend ^y Frontend en Windows Terminal...
+wt -d "%~dp0backend" --title "Backend :8080" cmd /c "go run cmd/server/main.go" ; new-tab -d "%~dp0web" --title "Frontend :5173" cmd /c "npm run dev"
 timeout /t 5 /nobreak >nul
 echo Listo! Backend ^:8080 ^| Frontend ^:5173
 echo.
@@ -40,9 +39,8 @@ echo Deteniendo servidores...
 taskkill /f /im go.exe >nul 2>&1
 taskkill /f /im node.exe >nul 2>&1
 timeout /t 2 /nobreak >nul
-echo Reiniciando...
-start "Backend - :8080" /D "%~dp0backend" cmd /c "go run cmd/server/main.go"
-start "Frontend - :5173" /D "%~dp0web" cmd /c "npm run dev"
+echo Reiniciando en Windows Terminal...
+wt -d "%~dp0backend" --title "Backend :8080" cmd /c "go run cmd/server/main.go" ; new-tab -d "%~dp0web" --title "Frontend :5173" cmd /c "npm run dev"
 timeout /t 5 /nobreak >nul
 echo Listo! Backend ^:8080 ^| Frontend ^:5173
 echo.
