@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { Pencil, Trash2, ChevronDown, ChevronRight, Camera, Eye, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { ingresosApi, Ingreso } from '../../services/api'
@@ -508,36 +509,6 @@ function DetallesModal({ ingreso, onClose, onImageClick }: {
   onImageClick: (src: string) => void
 }) {
   const fechaPagoDate = new Date(ingreso.fecha_pago.replace('T00:00:00Z', 'T00:00:00'))
-  const year = fechaPagoDate.getFullYear()
-  const month = fechaPagoDate.getMonth()
-
-  const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
-  const dayNames = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do']
-
-  const firstDayOfMonth = new Date(year, month, 1).getDay()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const startDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1 // Monday start
-
-  // Map work dates by "YYYY-MM-DD"
-  const workDatesMap = useMemo(() => {
-    const map = new Map<string, { monto_enteros: number; monto_display: string }>()
-    for (const ft of ingreso.fechas_trabajo || []) {
-      const key = ft.fecha.replace('T00:00:00Z', '').split('T')[0]
-      map.set(key, { monto_enteros: ft.monto_enteros, monto_display: ft.monto_display })
-    }
-    return map
-  }, [ingreso])
-
-  // Build calendar grid
-  const calendarCells: { day: number | null; key: string; isWork: boolean; monto?: string }[] = []
-  for (let i = 0; i < startDay; i++) {
-    calendarCells.push({ day: null, key: `empty-${i}`, isWork: false })
-  }
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-    const workData = workDatesMap.get(dateStr)
-    calendarCells.push({ day: d, key: dateStr, isWork: !!workData, monto: workData?.monto_display })
-  }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -564,45 +535,6 @@ function DetallesModal({ ingreso, onClose, onImageClick }: {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* Calendar */}
-          <div>
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {monthNames[month]} {year}
-            </h4>
-            <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-600 rounded-lg overflow-hidden">
-              {/* Day headers */}
-              {dayNames.map(d => (
-                <div key={d} className="bg-gray-100 dark:bg-gray-700 px-1 py-1.5 text-center text-[10px] font-medium text-gray-500 dark:text-gray-400">
-                  {d}
-                </div>
-              ))}
-              {/* Calendar cells */}
-              {calendarCells.map(cell => (
-                <div
-                  key={cell.key}
-                  className={`bg-white dark:bg-gray-800 px-1 py-1.5 min-h-[36px] text-center text-xs ${
-                    cell.isWork
-                      ? 'bg-blue-50 dark:bg-blue-900/20'
-                      : ''
-                  }`}
-                >
-                  {cell.day && (
-                    <div>
-                      <span className={`${cell.isWork ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}>
-                        {cell.day}
-                      </span>
-                      {cell.isWork && cell.monto && (
-                        <div className="text-[9px] text-blue-500 dark:text-blue-300 leading-tight mt-0.5">
-                          {cell.monto.replace(' BOB', '')}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Work days list */}
           <div>
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -613,7 +545,7 @@ function DetallesModal({ ingreso, onClose, onImageClick }: {
                 const fecha = new Date(ft.fecha.replace('T00:00:00Z', 'T00:00:00'))
                 return (
                   <div key={ft.fecha} className="flex items-center justify-between px-3 py-1.5 bg-gray-50 dark:bg-gray-700/30 rounded-lg text-sm">
-                    <span className="text-gray-700 dark:text-gray-300">{format(fecha, 'dd/MM/yyyy')}</span>
+                    <span className="text-gray-700 dark:text-gray-300">{format(fecha, 'dd/MM/yyyy (EEEE)', { locale: es })}</span>
                     <span className="font-medium text-green-600 dark:text-green-400">{ft.monto_display}</span>
                   </div>
                 )
@@ -621,18 +553,26 @@ function DetallesModal({ ingreso, onClose, onImageClick }: {
             </div>
           </div>
 
+          {/* Comentario */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comentario</h4>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{ingreso.comentario || 'Ingreso sin comentarios'}</p>
+          </div>
+
           {/* Image */}
-          {ingreso.imagen_ruta && (
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Comprobante</h4>
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Comprobante</h4>
+            {ingreso.imagen_ruta ? (
               <button
                 onClick={() => onImageClick(ingreso.imagen_ruta!)}
                 className="block rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 hover:opacity-80 transition-opacity"
               >
                 <img src={ingreso.imagen_ruta} className="max-h-48 object-contain" alt="Comprobante" />
               </button>
-            </div>
-          )}
+            ) : (
+              <p className="text-sm text-gray-600 dark:text-gray-400">Ingreso sin comprobante</p>
+            )}
+          </div>
         </div>
 
         {/* Footer */}

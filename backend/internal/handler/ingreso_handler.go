@@ -242,5 +242,11 @@ func (h *IngresoHandler) Upload(c *gin.Context) {
 		return
 	}
 
+	if ingresoID != "" {
+		if id, err := strconv.ParseInt(ingresoID, 10, 64); err == nil {
+			_ = h.svc.UpdateImagenRuta(c.Request.Context(), id, "/uploads/"+filename)
+		}
+	}
+
 	c.JSON(http.StatusOK, dto.SuccessResponse{Message: "/uploads/" + filename})
 }

@@ -123,8 +123,12 @@ func (s *IngresoService) Update(ctx context.Context, id int64, req dto.UpdateIng
 	if req.Tipo != nil {
 		existing.Tipo = *req.Tipo
 	}
-	existing.Comentario = req.Comentario
-	existing.ImagenRuta = req.ImagenRuta
+	if req.Comentario != nil {
+		existing.Comentario = req.Comentario
+	}
+	if req.ImagenRuta != nil {
+		existing.ImagenRuta = req.ImagenRuta
+	}
 	if req.FechasTrabajo != nil {
 		var fechas []model.FechaTrabajo
 		for _, f := range req.FechasTrabajo {
@@ -152,6 +156,10 @@ func (s *IngresoService) Delete(ctx context.Context, id int64) error {
 
 func (s *IngresoService) GetFechasOcupadas(ctx context.Context, mes, anio int) (map[string][]string, error) {
 	return s.repo.GetFechasOcupadas(ctx, mes, anio)
+}
+
+func (s *IngresoService) UpdateImagenRuta(ctx context.Context, id int64, imagenRuta string) error {
+	return s.repo.UpdateImagenRuta(ctx, id, imagenRuta)
 }
 
 func (s *IngresoService) toResponse(ing *model.Ingreso) *dto.IngresoResponse {

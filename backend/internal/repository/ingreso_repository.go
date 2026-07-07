@@ -230,3 +230,10 @@ func (r *IngresoRepository) GetFechasOcupadas(ctx context.Context, mes, anio int
 	}
 	return fechas, nil
 }
+
+func (r *IngresoRepository) UpdateImagenRuta(ctx context.Context, id int64, imagenRuta string) error {
+	_, err := r.db.Exec(ctx,
+		"UPDATE ingresos SET imagen_ruta = $1, updated_at = NOW() WHERE id = $2",
+		imagenRuta, id)
+	return err
+}
