@@ -26,8 +26,8 @@ goto menu
 
 :start_all
 echo Iniciando Backend ^y Frontend...
-start "Backend - :8080" cmd /c "go run cmd/server/main.go"
-start "Frontend - :5173" cmd /c "npm run dev"
+start "Backend - :8080" /D "%~dp0backend" cmd /c "go run cmd/server/main.go"
+start "Frontend - :5173" /D "%~dp0web" cmd /c "npm run dev"
 timeout /t 5 /nobreak >nul
 echo Listo! Backend ^:8080 ^| Frontend ^:5173
 echo.
@@ -41,8 +41,8 @@ taskkill /f /im go.exe >nul 2>&1
 taskkill /f /im node.exe >nul 2>&1
 timeout /t 2 /nobreak >nul
 echo Reiniciando...
-start "Backend - :8080" cmd /c "go run cmd/server/main.go"
-start "Frontend - :5173" cmd /c "npm run dev"
+start "Backend - :8080" /D "%~dp0backend" cmd /c "go run cmd/server/main.go"
+start "Frontend - :5173" /D "%~dp0web" cmd /c "npm run dev"
 timeout /t 5 /nobreak >nul
 echo Listo! Backend ^:8080 ^| Frontend ^:5173
 echo.
