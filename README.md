@@ -11,9 +11,12 @@ Gestor de ingresos laborales multiplataforma (Web + Android).
 ## Características
 
 - Calendario interactivo con herramientas Trabajo/Pago/Quitar
+- Múltiples pagos en la misma fecha (agrupados visualmente con subtotales)
 - Dashboard con 4 gráficos (semanal, mensual, anual, histórico) y navegación independiente
 - Ingresos agrupados por año con edición, eliminación y filtros
-- Subida de comprobantes de pago (imágenes)
+- Subida de comprobantes con drag & drop y preview
+- Detalles de ingreso con día de semana en español
+- Tipo de pago: QR / Efectivo
 - Moneda BOB (Bolivianos), montos en centavos
 - Dark/Light mode (web), system theme (mobile)
 - Timezone: America/La_Paz (UTC-4)

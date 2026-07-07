@@ -56,6 +56,8 @@ finanzasMikygo/
 │   │   ├── 004_fill_missing_work_dates.up.sql
 │   │   ├── 005_add_monto_to_fechas_trabajo.up.sql
 │   │   ├── 006_backfill_monto_fechas_trabajo.sql
+│   │   ├── 007_change_tipo_to_qr_efectivo.up.sql
+│   │   ├── 007_change_tipo_to_qr_efectivo.down.sql
 │   │   └── *.down.sql
 │   ├── uploads/
 │   ├── docs/
@@ -103,7 +105,7 @@ CREATE TABLE ingresos (
     id SERIAL PRIMARY KEY,
     fecha_pago DATE NOT NULL,
     monto_enteros BIGINT NOT NULL,       -- centavos (150 BOB = 15000)
-    tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('diario', 'semanal')),
+    tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('qr', 'efectivo')),
     comentario TEXT,
     imagen_ruta VARCHAR(500),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -161,8 +163,8 @@ GET    /swagger/*any                 # Swagger UI
 - Conversión: `monto_bob = monto_enteros / 100`
 
 ### Distribución de Monto (splitMonto)
-- **semanal**: `FLOOR(total / n)` para los primeros n-1 días, residuo en el último
-- **diario**: el monto completo va a cada día
+- **qr**: `FLOOR(total / n)` para los primeros n-1 días, residuo en el último (antes "semanal")
+- **efectivo**: el monto completo va a cada día (antes "diario")
 - Aplicado al crear, actualizar, y en backfill (006)
 
 ### Fechas Ocupadas
@@ -192,7 +194,22 @@ GET    /swagger/*any                 # Swagger UI
 
 ### Upload de Imagen
 - Flujo: crear ingreso → upload con `ingreso_id` → backend guarda como `pago_{id}.{ext}`
+- El backend actualiza `imagen_ruta` en la DB automáticamente al subir con `ingreso_id`
 - Si no se provee `ingreso_id`, guarda como `upload_{timestamp}.{ext}`
+- Frontend: zona de drag & drop con preview y botón de eliminar
+
+### Pagos Duplicados
+- Se permiten múltiples ingresos con la misma `fecha_pago`
+- Herramienta `trabajo`: bloqueada si la fecha ya tiene un pago registrado
+- Herramienta `pago`: siempre permite registrar en fechas existentes
+- Herramienta `quitar`: siempre permite operar
+- En la tabla de ingresos, los registros del mismo día se agrupan visualmente con fondo sutil y fila de subtotal
+
+### Detalles de Ingreso
+- Calendario eliminado del modal de detalles
+- Lista de días trabajados muestra día de la semana en español: `dd/MM/yyyy (EEEE)` → "15/06/2026 (lunes)"
+- Sección Comentario siempre visible: "Ingreso sin comentarios" si está vacío
+- Sección Comprobante siempre visible: "Ingreso sin comprobante" si no hay imagen
 
 ### SQL Tab (solo dev)
 - Editor de queries SQL
@@ -237,12 +254,13 @@ cd mobile && flutter run                    # Emulador/dispositivo
 | API Dashboard | ✅ Completo |
 | Swagger docs | ✅ Generado |
 | SQL Tab backend | ✅ Completo |
-| DB + Migraciones | ✅ Ejecutadas (173 registros, 313 fechas_trabajo) |
+| DB + Migraciones | ✅ Ejecutadas (174 registros, 313 fechas_trabajo) |
 | Timezone (La_Paz) | ✅ Implementado |
 | Web React + Tailwind | ✅ Completo |
 | Dashboard con navegación | ✅ Completo |
-| Registrar Ingreso (calendario) | ✅ Completo |
-| Ingresos (año agrupado, editar, eliminar) | ✅ Completo |
+| Registrar Ingreso (calendario + drag & drop) | ✅ Completo |
+| Ingresos (agrupados por año, pagos duplicados, subtotales) | ✅ Completo |
+| Detalles (día español, fallbacks) | ✅ Completo |
 | SQL Tab frontend | ✅ Completo |
 | Dark/Light mode | ✅ Completo |
 | Flutter Dashboard (4 cards, 4 gráficos) | ✅ Completo |
