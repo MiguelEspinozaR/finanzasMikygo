@@ -1,10 +1,12 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Briefcase, CreditCard, X, CheckCircle, Upload, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { ingresosApi, CreateIngresoRequest } from '../../services/api'
+import { recognizeReceipt, OcrReceiptData } from '../../services/ocrService'
+import OcrConfirmationModal from './OcrConfirmationModal'
 
 type Tool = 'trabajo' | 'pago' | 'quitar'
 
@@ -20,6 +22,11 @@ export default function RegistrarIngreso() {
   const [imagen, setImagen] = useState<File | null>(null)
   const [imagenPreview, setImagenPreview] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [ocrResult, setOcrResult] = useState<OcrReceiptData | null>(null)
+  const [showOcrModal, setShowOcrModal] = useState(false)
+  const [isOcrProcessing, setIsOcrProcessing] = useState(false)
+  const [ocrProgress, setOcrProgress] = useState(0)
+  const ocrTriggeredRef = useRef(false)
 
   const month = currentDate.getMonth() + 1
   const year = currentDate.getFullYear()
@@ -121,6 +128,40 @@ export default function RegistrarIngreso() {
   const removeImage = () => {
     setImagen(null)
     setImagenPreview(null)
+    setOcrResult(null)
+    setShowOcrModal(false)
+    ocrTriggeredRef.current = false
+  }
+
+  useEffect(() => {
+    if (!imagenPreview || ocrTriggeredRef.current) return
+    ocrTriggeredRef.current = true
+    setIsOcrProcessing(true)
+    setOcrProgress(0)
+    recognizeReceipt(imagenPreview, setOcrProgress)
+      .then(result => {
+        setOcrResult(result)
+        setShowOcrModal(true)
+      })
+      .catch(() => {
+        toast.error('No se pudo leer el comprobante')
+      })
+      .finally(() => {
+        setIsOcrProcessing(false)
+      })
+  }, [imagenPreview])
+
+  const handleOcrConfirm = (data: { monto: string; fechaPago: string; fechasTrabajo: string[]; comentario: string }) => {
+    setMonto(data.monto)
+    setSelectedPaymentDay(data.fechaPago)
+    setSelectedWorkDays(data.fechasTrabajo)
+    setComentario(data.comentario)
+    setShowOcrModal(false)
+    toast.success('Datos del comprobante aplicados')
+  }
+
+  const handleOcrCancel = () => {
+    setShowOcrModal(false)
   }
 
   const handleSubmit = async () => {
@@ -362,6 +403,18 @@ export default function RegistrarIngreso() {
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
+                  {isOcrProcessing && (
+                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center rounded-lg">
+                      <div className="text-white text-sm mb-2">Leyendo comprobante...</div>
+                      <div className="w-3/4 bg-gray-700 rounded-full h-2">
+                        <div
+                          className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${ocrProgress}%` }}
+                        />
+                      </div>
+                      <div className="text-white text-xs mt-1">{ocrProgress}%</div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div
@@ -407,6 +460,15 @@ export default function RegistrarIngreso() {
           </div>
        </div>
       </div>
+
+      {showOcrModal && ocrResult && imagenPreview && (
+        <OcrConfirmationModal
+          data={ocrResult}
+          imagenPreview={imagenPreview}
+          onConfirm={handleOcrConfirm}
+          onCancel={handleOcrCancel}
+        />
+      )}
     </div>
   )
 }
