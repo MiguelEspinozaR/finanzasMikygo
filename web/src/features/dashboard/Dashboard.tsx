@@ -213,7 +213,7 @@ export default function Dashboard() {
           <BarChart data={stackedData}>
             <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
             <XAxis dataKey="semana" stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-            <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+            <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} tickFormatter={(v) => (v / 100).toFixed(0)} />
             <Tooltip
               {...tooltipStyle}
               formatter={(value: number) => {
@@ -260,7 +260,7 @@ export default function Dashboard() {
           <BarChart data={yearly?.data || []}>
             <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
             <XAxis dataKey="mes" stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-            <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+            <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} tickFormatter={(v) => (v / 100).toFixed(0)} />
             <Tooltip {...tooltipStyle} formatter={(value: number) => formatMonto(value)} />
             <Bar dataKey="monto" fill="#f59e0b" radius={[4, 4, 0, 0]} />
           </BarChart>
@@ -291,7 +291,7 @@ export default function Dashboard() {
               textAnchor="end"
               height={50}
             />
-            <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+            <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} tickFormatter={(v) => (v / 100).toFixed(0)} />
             <Tooltip
               {...tooltipStyle}
               formatter={(value: number, name: string) => {
