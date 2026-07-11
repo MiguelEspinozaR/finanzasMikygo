@@ -68,7 +68,7 @@ export default function OcrConfirmationModal({ data, imagenPreview, onConfirm, o
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {/* Preview */}
           <div className="flex justify-center">
-            <img src={imagenPreview} alt="Comprobante" className="max-h-40 rounded-lg border border-gray-200 dark:border-gray-600" />
+            <img src={imagenPreview} alt="Comprobante" className="max-h-64 rounded-lg border border-gray-200 dark:border-gray-600" />
           </div>
 
           {/* Fechas de trabajo */}

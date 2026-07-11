@@ -23,7 +23,7 @@ function parseMonto(text: string): number | null {
   for (const pat of patterns) {
     const m = text.match(pat)
     if (m) {
-      const raw = m[1].replace(/\./g, '').replace(',', '.')
+      const raw = m[1].replace(',', '.')
       const num = parseFloat(raw)
       if (!isNaN(num) && num > 0) return num
     }
