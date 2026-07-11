@@ -2,7 +2,10 @@
 title Finanzas Mikygo
 mode con: cols=60 lines=25
 
+
+
 :menu
+goto start_all
 cls
 echo ========================================
 echo    Finanzas Mikygo - Panel de Control
