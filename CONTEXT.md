@@ -16,6 +16,7 @@ Aplicación multiplataforma (Web + Android) para gestionar ingresos laborales co
 | Web Frontend | React 19 + Vite + TypeScript |
 | Estilos | Tailwind CSS v3 |
 | Gráficos | Recharts |
+| OCR | Tesseract.js (client-side, español) |
 | Calendario | date-fns |
 | State server | TanStack Query |
 | Routing web | React Router v7 |
@@ -236,8 +237,12 @@ SQL_DEV_ENABLED=true
 ## Ejecución
 
 ```bash
-# Iniciar todo (backend + web + navegador)
+# Windows (abre Windows Terminal con 2 pestañas)
 run.bat
+
+# Ubuntu (abre GNOME Terminal con 2 pestañas)
+chmod +x run.sh
+./run.sh
 
 # O por separado:
 cd backend && go run cmd/server/main.go    # :8080
@@ -254,13 +259,17 @@ cd mobile && flutter run                    # Emulador/dispositivo
 | API Dashboard | ✅ Completo |
 | Swagger docs | ✅ Generado |
 | SQL Tab backend | ✅ Completo |
-| DB + Migraciones | ✅ Ejecutadas (174 registros, 313 fechas_trabajo) |
+| DB + Migraciones | ✅ Ejecutadas (174 registros, 313 fechas_trabajo, tablas splits) |
 | Timezone (La_Paz) | ✅ Implementado |
 | Web React + Tailwind | ✅ Completo |
 | Dashboard con navegación | ✅ Completo |
 | Registrar Ingreso (calendario + drag & drop) | ✅ Completo |
+| OCR comprobantes bancarios (Tesseract.js) | ✅ Completo |
 | Ingresos (agrupados por año, pagos duplicados, subtotales) | ✅ Completo |
 | Detalles (día español, fallbacks) | ✅ Completo |
+| Splits (reparto de ingresos en cuentas) | ✅ Completo |
+| Configuración de splits y cuentas | ✅ Completo |
+| CRUD cuentas (alias, banco, tipo, QR) | ✅ Completo |
 | SQL Tab frontend | ✅ Completo |
 | Dark/Light mode | ✅ Completo |
 | Flutter Dashboard (4 cards, 4 gráficos) | ✅ Completo |

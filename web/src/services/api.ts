@@ -93,6 +93,73 @@ export interface SQLSchemaResponse {
   tables: SQLTableInfo[]
 }
 
+// Cuentas
+export interface Cuenta {
+  id: number
+  alias: string
+  banco: string | null
+  numero_cuenta: string | null
+  tipo: 'ahorro' | 'corriente' | 'virtual' | 'fisica'
+  qr_ruta: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateCuentaRequest {
+  alias: string
+  banco?: string
+  numero_cuenta?: string
+  tipo: 'ahorro' | 'corriente' | 'virtual' | 'fisica'
+}
+
+export interface CuentaListResponse {
+  data: Cuenta[]
+}
+
+// Splits
+export interface SplitConfig {
+  id: number
+  cuenta_id: number
+  cuenta_alias: string
+  cuenta_tipo: string
+  porcentaje: number
+  orden: number
+}
+
+export interface SplitConfigListResponse {
+  data: SplitConfig[]
+}
+
+export interface Split {
+  id: number
+  ingreso_id: number
+  ingreso_monto: number
+  ingreso_fecha_pago: string
+  cuenta_alias: string
+  cuenta_tipo: string
+  porcentaje: number
+  monto_enteros: number
+  monto_display: string
+  realizado: boolean
+  fecha_realizado: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SplitListResponse {
+  data: Split[]
+}
+
+export interface UpdateSplitConfigRequest {
+  cuenta_id: number
+  porcentaje: number
+  aplicar_a_pendientes: boolean
+}
+
+export interface UpdateAllSplitConfigRequest {
+  configuraciones: UpdateSplitConfigRequest[]
+}
+
 // Ingresos
 export const ingresosApi = {
   create: (data: CreateIngresoRequest) => api.post<Ingreso>('/ingresos', data),
@@ -126,6 +193,34 @@ export const dashboardApi = {
 export const sqlApi = {
   execute: (query: string) => api.post<SQLExecuteResponse>('/sql/execute', { query }),
   getSchema: () => api.get<SQLSchemaResponse>('/sql/schema'),
+}
+
+// Cuentas
+export const cuentasApi = {
+  create: (data: CreateCuentaRequest) => api.post<Cuenta>('/cuentas', data),
+  getAll: () => api.get<CuentaListResponse>('/cuentas'),
+  getById: (id: number) => api.get<Cuenta>(`/cuentas/${id}`),
+  update: (id: number, data: Partial<CreateCuentaRequest>) => api.put<Cuenta>(`/cuentas/${id}`, data),
+  delete: (id: number) => api.delete(`/cuentas/${id}`),
+  uploadQr: (id: number, file: File) => {
+    const formData = new FormData()
+    formData.append('qr', file)
+    return api.post<{ message: string }>(`/cuentas/${id}/qr`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  deleteQr: (id: number) => api.delete(`/cuentas/${id}/qr`),
+}
+
+// Splits
+export const splitsApi = {
+  getConfig: () => api.get<SplitConfigListResponse>('/splits/config'),
+  updateConfig: (data: UpdateAllSplitConfigRequest) => api.put<{ message: string }>('/splits/config', data),
+  getAll: () => api.get<SplitListResponse>('/splits'),
+  getByIngresoId: (ingresoId: number) => api.get<SplitListResponse>(`/splits/ingreso/${ingresoId}`),
+  marcarRealizado: (id: number, realizado: boolean) => api.put<{ message: string }>(`/splits/${id}/realizar`, { realizado }),
+  updateMonto: (id: number, montoEnteros: number) => api.put<{ message: string }>(`/splits/${id}`, { monto_enteros: montoEnteros }),
+  delete: (id: number) => api.delete(`/splits/${id}`),
 }
 
 export default api

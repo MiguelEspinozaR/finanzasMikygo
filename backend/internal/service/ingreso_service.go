@@ -12,11 +12,12 @@ import (
 )
 
 type IngresoService struct {
-	repo *repository.IngresoRepository
+	repo      *repository.IngresoRepository
+	splitRepo *repository.SplitRepository
 }
 
-func NewIngresoService(repo *repository.IngresoRepository) *IngresoService {
-	return &IngresoService{repo: repo}
+func NewIngresoService(repo *repository.IngresoRepository, splitRepo *repository.SplitRepository) *IngresoService {
+	return &IngresoService{repo: repo, splitRepo: splitRepo}
 }
 
 func (s *IngresoService) Create(ctx context.Context, req dto.CreateIngresoRequest) (*dto.IngresoResponse, error) {
@@ -49,6 +50,8 @@ func (s *IngresoService) Create(ctx context.Context, req dto.CreateIngresoReques
 		return nil, err
 	}
 
+	s.generarSplits(ctx, ingreso.ID, ingreso.MontoEnteros)
+
 	return s.toResponse(ingreso), nil
 }
 
@@ -68,6 +71,28 @@ func (s *IngresoService) splitMonto(ingreso *model.Ingreso) {
 			ingreso.FechasTrabajo[i].MontoEnteros = total - base*int64(n-1)
 		}
 	}
+}
+
+func (s *IngresoService) generarSplits(ctx context.Context, ingresoID int64, montoEnteros int64) {
+	configs, err := s.splitRepo.GetConfiguraciones(ctx)
+	if err != nil || len(configs) == 0 {
+		return
+	}
+
+	var splits []model.Split
+	for _, config := range configs {
+		montoBOB := float64(montoEnteros / 100)
+		montoSplit := int64(montoBOB * float64(config.Porcentaje) / 100)
+		montoSplitCentavos := montoSplit * 100
+
+		splits = append(splits, model.Split{
+			IngresoID:            ingresoID,
+			SplitConfiguracionID: config.ID,
+			MontoEnteros:         montoSplitCentavos,
+		})
+	}
+
+	s.splitRepo.CreateSplits(ctx, splits)
 }
 
 func (s *IngresoService) GetAll(ctx context.Context, fechaInicio, fechaFin *time.Time, tipo *string, page, pageSize int) (*dto.IngresoListResponse, error) {
