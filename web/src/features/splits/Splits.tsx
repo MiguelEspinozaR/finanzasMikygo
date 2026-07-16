@@ -189,12 +189,16 @@ export default function Splits() {
                               <div className="flex items-center justify-end gap-1">
                                 <button
                                   onClick={() => toggleRealizado.mutate({ id: split.id, realizado: !split.realizado })}
+                                  disabled={split.realizado}
                                   className={`p-1.5 rounded-lg transition-colors ${
                                     split.realizado
-                                      ? 'text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30'
+                                      ? 'text-green-600 opacity-50 cursor-not-allowed'
                                       : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                                   }`}
-                                  title={split.realizado ? 'Marcar como pendiente' : 'Marcar como realizado'}
+                                  title={split.realizado && split.fecha_realizado
+                                    ? `Realizado el ${format(parseISO(split.fecha_realizado), "dd/MM/yyyy 'a las' HH:mm")}`
+                                    : 'Marcar como realizado'
+                                  }
                                 >
                                   <Check className="w-4 h-4" />
                                 </button>
@@ -253,7 +257,7 @@ export default function Splits() {
 function QrModal({ split, onClose }: { split: Split; onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-sm w-full" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">QR — {split.cuenta_alias}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -264,7 +268,7 @@ function QrModal({ split, onClose }: { split: Split; onClose: () => void }) {
           <img
             src={`/uploads/${split.qr_ruta}`}
             alt={`QR ${split.cuenta_alias}`}
-            className="w-64 h-64 object-contain rounded-lg border border-gray-200 dark:border-gray-600"
+            className="w-96 h-96 object-contain rounded-lg border border-gray-200 dark:border-gray-600"
           />
           <div className="text-center">
             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${tipoBadgeColor[split.cuenta_tipo] || ''}`}>
