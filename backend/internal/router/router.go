@@ -87,7 +87,7 @@ func New(
 			cuentas.GET("/:id", splitHandler.GetCuentaByID)
 			cuentas.PUT("/:id", splitHandler.UpdateCuenta)
 			cuentas.DELETE("/:id", splitHandler.DeleteCuenta)
-			cuentas.PUT("/:id/qr", splitHandler.UpdateQr)
+			cuentas.POST("/:id/qr", splitHandler.UpdateQr)
 			cuentas.DELETE("/:id/qr", splitHandler.DeleteQr)
 		}
 	}

@@ -20,6 +20,7 @@ export default function CuentaModal({ cuenta, onClose, onSaved }: Props) {
   const [qrPreview, setQrPreview] = useState<string | null>(
     cuenta?.qr_ruta ? `/uploads/${cuenta.qr_ruta}` : null
   )
+  const [isDragging, setIsDragging] = useState(false)
 
   const createMutation = useMutation({
     mutationFn: (data: CreateCuentaRequest) => cuentasApi.create(data),
@@ -70,6 +71,30 @@ export default function CuentaModal({ cuenta, onClose, onSaved }: Props) {
       const reader = new FileReader()
       reader.onload = (ev) => setQrPreview(ev.target?.result as string)
       reader.readAsDataURL(file)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      setQrFile(file)
+      const reader = new FileReader()
+      reader.onload = () => setQrPreview(reader.result as string)
+      reader.readAsDataURL(file)
+    } else {
+      toast.error('Solo se permiten archivos de imagen')
     }
   }
 
@@ -191,16 +216,29 @@ export default function CuentaModal({ cuenta, onClose, onSaved }: Props) {
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750">
-                <Upload className="w-8 h-8 text-gray-400" />
-                <span className="text-sm text-gray-500 mt-2">Subir imagen QR</span>
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => document.getElementById('qr-file-input')?.click()}
+                className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                  isDragging
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                    : 'border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500'
+                }`}
+              >
+                <Upload className={`w-8 h-8 ${isDragging ? 'text-primary-500' : 'text-gray-400'}`} />
+                <span className="text-sm text-gray-500 mt-2">
+                  {isDragging ? 'Soltar imagen aquí' : 'Arrastra una imagen o haz clic'}
+                </span>
                 <input
+                  id="qr-file-input"
                   type="file"
                   accept="image/*"
                   onChange={handleFileChange}
                   className="hidden"
                 />
-              </label>
+              </div>
             )}
           </div>
 
