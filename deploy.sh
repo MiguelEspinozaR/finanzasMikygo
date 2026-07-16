@@ -220,11 +220,6 @@ fi
 
 ok "Tunnel activo: $TUNNEL_URL"
 
-# Configurar allowedHosts con la URL del tunnel
-info "Configurando allowedHosts para $TUNNEL_URL..."
-sed -i "s|allowedHosts: 'all'|allowedHosts: ['$TUNNEL_URL']|g" "$DIR/web/vite.config.ts"
-ok "allowedHosts actualizado"
-
 # ==========================================
 # [6/7] Backend
 # ==========================================
@@ -263,7 +258,7 @@ echo ""
 echo -e "${CYAN}[7/7]${NC} Iniciando Frontend..."
 
 cd "$DIR/web"
-node_modules/.bin/vite --host 0.0.0.0 > "$FRONTEND_LOG" 2>&1 &
+node_modules/.bin/vite --host 0.0.0.0 --allowed-hosts all > "$FRONTEND_LOG" 2>&1 &
 FRONTEND_PID=$!
 cd "$DIR"
 
@@ -278,9 +273,6 @@ for i in $(seq 1 10); do
     printf "."
 done
 echo ""
-
-# Restaurar allowedHosts a 'all' para no contaminar el repo
-sed -i "s|allowedHosts: \['.*'\]|allowedHosts: 'all'|g" "$DIR/web/vite.config.ts"
 
 # ==========================================
 # Status final
