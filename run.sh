@@ -45,7 +45,7 @@ start_backend() {
 start_frontend() {
     echo "Iniciando Frontend en :5173..."
     cd "$DIR/web"
-    npm run dev > "$FRONTEND_LOG" 2>&1 &
+    npm run dev -- --host 0.0.0.0 > "$FRONTEND_LOG" 2>&1 &
     FRONTEND_PID=$!
     cd "$DIR"
 }
