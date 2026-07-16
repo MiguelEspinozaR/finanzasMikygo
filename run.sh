@@ -1,61 +1,95 @@
 #!/bin/bash
-# Finanzas Mikygo - Panel de Control (Linux)
-# Requiere: gnome-terminal (Ubuntu/GNOME default)
+# Finanzas Mikygo - Panel de Control (WSL / Linux sin GUI)
+# Ejecutar desde la raiz del proyecto: ./run.sh
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
+BACKEND_PID=""
+FRONTEND_PID=""
+BACKEND_LOG="/tmp/finanzas_backend.log"
+FRONTEND_LOG="/tmp/finanzas_frontend.log"
 
-show_menu() {
-    clear
-    echo "========================================"
-    echo "   Finanzas Mikygo - Panel de Control"
-    echo "========================================"
+cleanup() {
     echo ""
-    echo "  [1] Iniciar todos"
-    echo "  [2] Reiniciar todos"
-    echo "  [3] Detener todos"
-    echo "  [4] Abrir navegador"
-    echo "  [5] Salir"
-    echo "========================================"
-    echo ""
-}
-
-start_servers() {
-    echo "Iniciando Backend y Frontend en GNOME Terminal..."
-    gnome-terminal \
-        --tab --title="Backend :8080" -- bash -c "cd '$DIR/backend' && go run cmd/server/main.go; exec bash" \
-        --tab --title="Frontend :5173" -- bash -c "cd '$DIR/web' && npm run dev; exec bash"
-    sleep 5
-    echo "Listo! Backend :8080 | Frontend :5173"
-    echo ""
-    xdg-open http://localhost:5173 2>/dev/null
-}
-
-stop_servers() {
     echo "Deteniendo servidores..."
+    [ -n "$BACKEND_PID" ] && kill "$BACKEND_PID" 2>/dev/null
+    [ -n "$FRONTEND_PID" ] && kill "$FRONTEND_PID" 2>/dev/null
     pkill -f "go run cmd/server/main.go" 2>/dev/null
     pkill -f "npm run dev" 2>/dev/null
     pkill -f "node.*vite" 2>/dev/null
     echo "Servidores detenidos."
+    exit 0
+}
+
+trap cleanup SIGINT SIGTERM
+
+ensure_frontend_deps() {
+    cd "$DIR/web"
+    if [ ! -d "node_modules/@rollup/rollup-linux-x64-gnu" ]; then
+        echo "  Dependencias de Rollup no encontradas para Linux."
+        echo "  Reinstalando node_modules..."
+        rm -rf node_modules package-lock.json
+        npm install
+        echo ""
+    fi
+    cd "$DIR"
+}
+
+start_backend() {
+    echo "Iniciando Backend en :8080..."
+    cd "$DIR/backend"
+    go run cmd/server/main.go > "$BACKEND_LOG" 2>&1 &
+    BACKEND_PID=$!
+    cd "$DIR"
+}
+
+start_frontend() {
+    echo "Iniciando Frontend en :5173..."
+    cd "$DIR/web"
+    npm run dev > "$FRONTEND_LOG" 2>&1 &
+    FRONTEND_PID=$!
+    cd "$DIR"
+}
+
+show_status() {
+    echo ""
+    echo "========================================"
+    echo "   Finanzas Mikygo - Servidores"
+    echo "========================================"
+    echo ""
+    if [ -n "$BACKEND_PID" ] && kill -0 "$BACKEND_PID" 2>/dev/null; then
+        echo "  Backend  : http://localhost:8080      [PID $BACKEND_PID] OK"
+    else
+        echo "  Backend  : http://localhost:8080      [DETENIDO]"
+    fi
+    if [ -n "$FRONTEND_PID" ] && kill -0 "$FRONTEND_PID" 2>/dev/null; then
+        echo "  Frontend : http://localhost:5173      [PID $FRONTEND_PID] OK"
+    else
+        echo "  Frontend : http://localhost:5173      [DETENIDO]"
+    fi
+    echo ""
+    echo "  Logs:"
+    echo "    Backend  : tail -f $BACKEND_LOG"
+    echo "    Frontend : tail -f $FRONTEND_LOG"
+    echo ""
+    echo "  Ctrl+C para detener todos"
+    echo "========================================"
     echo ""
 }
 
-while true; do
-    show_menu
-    read -p "Selecciona una opcion: " opt
-    case $opt in
-        1) start_servers ;;
-        2)
-            stop_servers
-            sleep 2
-            start_servers
-            ;;
-        3) stop_servers ;;
-        4)
-            xdg-open http://localhost:5173 2>/dev/null
-            xdg-open http://localhost:8080/swagger/index.html 2>/dev/null
-            ;;
-        5) stop_servers; exit 0 ;;
-        *) echo "Opcion invalida" ;;
-    esac
-    read -p "Presiona Enter para continuar..."
-done
+clear
+echo "========================================"
+echo "   Finanzas Mikygo - Panel de Control"
+echo "========================================"
+echo ""
+echo "  Iniciando Backend y Frontend..."
+echo ""
+
+ensure_frontend_deps
+start_backend
+sleep 2
+start_frontend
+sleep 3
+
+show_status
+
+wait
