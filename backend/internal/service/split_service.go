@@ -343,3 +343,24 @@ func (s *SplitService) GetAllCuentas(ctx context.Context) ([]dto.CuentaResponse,
 
 	return resp, nil
 }
+
+func (s *SplitService) GetIngresosConSplits(ctx context.Context) ([]int64, error) {
+	return s.splitRepo.GetIngresosConSplits(ctx)
+}
+
+func (s *SplitService) GenerarPorIngreso(ctx context.Context, ingresoID int64) error {
+	alreadyHas, err := s.splitRepo.HasAnySplits(ctx, ingresoID)
+	if err != nil {
+		return fmt.Errorf("error verificando splits: %w", err)
+	}
+	if alreadyHas {
+		return fmt.Errorf("ya tiene splits")
+	}
+
+	ingreso, err := s.ingresoRepo.GetByID(ctx, ingresoID)
+	if err != nil {
+		return fmt.Errorf("ingreso no encontrado: %w", err)
+	}
+
+	return s.GenerarSplits(ctx, ingresoID, ingreso.MontoEnteros)
+}

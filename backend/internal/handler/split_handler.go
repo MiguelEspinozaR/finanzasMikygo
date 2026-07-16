@@ -274,3 +274,33 @@ func (h *SplitHandler) DeleteQr(c *gin.Context) {
 
 	c.JSON(http.StatusOK, dto.SuccessResponse{Message: "qr eliminado"})
 }
+
+func (h *SplitHandler) GetIngresosConSplits(c *gin.Context) {
+	ids, err := h.svc.GetIngresosConSplits(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": ids})
+}
+
+func (h *SplitHandler) GenerarPorIngreso(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid id"})
+		return
+	}
+
+	if err := h.svc.GenerarPorIngreso(c.Request.Context(), id); err != nil {
+		if err.Error() == "ya tiene splits" {
+			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, dto.SuccessResponse{Message: "splits generados"})
+}

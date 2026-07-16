@@ -72,6 +72,8 @@ func New(
 		{
 			splits.GET("/config", splitHandler.GetConfiguraciones)
 			splits.PUT("/config", splitHandler.UpdateConfiguraciones)
+			splits.GET("/ingresos-con-splits", splitHandler.GetIngresosConSplits)
+			splits.POST("/generar/:id", splitHandler.GenerarPorIngreso)
 			splits.GET("", splitHandler.GetAll)
 			splits.GET("/ingreso/:id", splitHandler.GetByIngresoID)
 			splits.PUT("/:id/realizar", splitHandler.MarcarRealizado)

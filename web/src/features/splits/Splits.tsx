@@ -52,6 +52,9 @@ export default function Splits() {
       if (!groups[month]) groups[month] = []
       groups[month].push(split)
     }
+    for (const month of Object.keys(groups)) {
+      groups[month].sort((a, b) => b.ingreso_id - a.ingreso_id)
+    }
     return groups
   }, [splits])
 

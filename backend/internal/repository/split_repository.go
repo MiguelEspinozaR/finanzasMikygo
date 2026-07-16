@@ -234,3 +234,33 @@ func (r *SplitRepository) HasRealizedSplits(ctx context.Context, ingresoID int64
 	return count > 0, nil
 }
 
+func (r *SplitRepository) HasAnySplits(ctx context.Context, ingresoID int64) (bool, error) {
+	var count int
+	err := r.db.QueryRow(ctx,
+		"SELECT COUNT(*) FROM splits WHERE ingreso_id = $1",
+		ingresoID).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *SplitRepository) GetIngresosConSplits(ctx context.Context) ([]int64, error) {
+	query := `SELECT DISTINCT ingreso_id FROM splits ORDER BY ingreso_id DESC`
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("query ingresos con splits: %w", err)
+	}
+	defer rows.Close()
+
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan ingreso_id: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
