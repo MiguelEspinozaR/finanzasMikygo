@@ -257,7 +257,7 @@ export default function Splits() {
 function QrModal({ split, onClose }: { split: Split; onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-xl w-full" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">QR — {split.cuenta_alias}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -268,7 +268,7 @@ function QrModal({ split, onClose }: { split: Split; onClose: () => void }) {
           <img
             src={`/uploads/${split.qr_ruta}`}
             alt={`QR ${split.cuenta_alias}`}
-            className="w-[28rem] h-[28rem] object-contain rounded-lg border border-gray-200 dark:border-gray-600"
+            className="w-[650px] h-[650px] object-contain rounded-lg border border-gray-200 dark:border-gray-600"
           />
           <div className="text-center">
             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${tipoBadgeColor[split.cuenta_tipo] || ''}`}>
