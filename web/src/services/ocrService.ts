@@ -124,7 +124,8 @@ function parseFechasTrabajo(text: string, fallbackYear: number, fallbackMonth: n
   return []
 }
 
-export function parseReceipt(text: string): OcrReceiptData {
+export function parseReceipt(rawText: string): OcrReceiptData {
+  const text = rawText.replace(/\n/g, ' ').replace(/\s{2,}/g, ' ')
   const monto = parseMonto(text)
   const fechaPago = parseFechaPago(text)
 
@@ -145,7 +146,7 @@ export function parseReceipt(text: string): OcrReceiptData {
     fechaPago,
     fechasTrabajo,
     referencia: refMatch ? refMatch[1].trim() : null,
-    rawText: text,
+    rawText,
   }
 }
 
