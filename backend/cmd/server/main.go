@@ -30,9 +30,9 @@ func main() {
 	cuentaRepo := repository.NewCuentaRepository(db)
 	splitRepo := repository.NewSplitRepository(db)
 
-	ingresoSvc := service.NewIngresoService(ingresoRepo, splitRepo)
 	dashboardSvc := service.NewDashboardService(dashboardRepo)
 	splitSvc := service.NewSplitService(splitRepo, cuentaRepo, ingresoRepo)
+	ingresoSvc := service.NewIngresoService(ingresoRepo, splitSvc)
 
 	ingresoHandler := handler.NewIngresoHandler(ingresoSvc)
 	dashboardHandler := handler.NewDashboardHandler(dashboardSvc)

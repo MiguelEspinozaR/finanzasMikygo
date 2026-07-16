@@ -183,26 +183,19 @@ func (r *SplitRepository) CreateSplits(ctx context.Context, splits []model.Split
 }
 
 func (r *SplitRepository) MarcarRealizado(ctx context.Context, id int64, realizado bool) error {
-	var query string
 	if realizado {
-		query = `
-			UPDATE splits
+		_, err := r.db.Exec(ctx,
+			`UPDATE splits
 			SET realizado = true, fecha_realizado = NOW(), updated_at = NOW()
-			WHERE id = $1
-			RETURNING fecha_realizado, updated_at`
-	} else {
-		query = `
-			UPDATE splits
-			SET realizado = false, fecha_realizado = NULL, updated_at = NOW()
-			WHERE id = $1
-			RETURNING updated_at`
+			WHERE id = $1`, id)
+		return err
 	}
 
-	var updatedAt interface{}
-	if realizado {
-		return r.db.QueryRow(ctx, query, id).Scan(&updatedAt, &updatedAt)
-	}
-	return r.db.QueryRow(ctx, query, id).Scan(&updatedAt)
+	_, err := r.db.Exec(ctx,
+		`UPDATE splits
+		SET realizado = false, fecha_realizado = NULL, updated_at = NOW()
+		WHERE id = $1`, id)
+	return err
 }
 
 func (r *SplitRepository) UpdateMonto(ctx context.Context, id int64, montoEnteros int64) error {
@@ -241,12 +234,3 @@ func (r *SplitRepository) HasRealizedSplits(ctx context.Context, ingresoID int64
 	return count > 0, nil
 }
 
-func (r *SplitRepository) RecalculatePendingSplits(ctx context.Context, splitConfigID int64, newMontoEnteros int64) error {
-	query := `
-		UPDATE splits
-		SET monto_enteros = $2, updated_at = NOW()
-		WHERE split_configuracion_id = $1 AND realizado = false`
-
-	_, err := r.db.Exec(ctx, query, splitConfigID, newMontoEnteros)
-	return err
-}

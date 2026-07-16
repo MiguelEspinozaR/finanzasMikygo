@@ -54,6 +54,14 @@ func (s *SplitService) GetConfiguraciones(ctx context.Context) ([]dto.SplitConfi
 }
 
 func (s *SplitService) UpdateConfiguraciones(ctx context.Context, req dto.UpdateAllSplitConfigRequest) error {
+	var totalPorcentaje float64
+	for _, conf := range req.Configuraciones {
+		totalPorcentaje += conf.Porcentaje
+	}
+	if totalPorcentaje > 100.001 {
+		return fmt.Errorf("los porcentajes no pueden superar 100%% (actual: %.1f%%)", totalPorcentaje)
+	}
+
 	for _, conf := range req.Configuraciones {
 		config, err := s.splitRepo.GetConfiguracionByCuentaID(ctx, conf.CuentaID)
 		if err != nil {
@@ -87,9 +95,7 @@ func (s *SplitService) UpdateConfiguraciones(ctx context.Context, req dto.Update
 					}
 
 					nuevoMonto := s.calcularMontoSplit(ingreso.MontoEnteros, conf.Porcentaje)
-					if err := s.splitRepo.RecalculatePendingSplits(ctx, config.ID, nuevoMonto); err != nil {
-						continue
-					}
+					s.splitRepo.UpdateMonto(ctx, split.ID, nuevoMonto)
 				}
 			}
 		}
@@ -229,14 +235,10 @@ func (s *SplitService) GenerarSplits(ctx context.Context, ingresoID int64, monto
 		return nil
 	}
 
-	montoBOB := montoEnteros / 100
-
 	var splits []model.Split
-	totalAsignado := int64(0)
 
 	for _, config := range configs {
 		montoSplit := s.calcularMontoSplit(montoEnteros, config.Porcentaje)
-		totalAsignado += montoSplit
 
 		splits = append(splits, model.Split{
 			IngresoID:            ingresoID,
@@ -244,8 +246,6 @@ func (s *SplitService) GenerarSplits(ctx context.Context, ingresoID int64, monto
 			MontoEnteros:         montoSplit,
 		})
 	}
-
-	_ = montoBOB
 
 	return s.splitRepo.CreateSplits(ctx, splits)
 }

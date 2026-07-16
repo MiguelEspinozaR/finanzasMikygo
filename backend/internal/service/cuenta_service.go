@@ -101,13 +101,6 @@ func (s *CuentaService) Update(ctx context.Context, id int64, req dto.UpdateCuen
 }
 
 func (s *CuentaService) Delete(ctx context.Context, id int64) error {
-	cuenta, err := s.repo.GetByID(ctx, id)
-	if err != nil {
-		return fmt.Errorf("cuenta not found: %w", err)
-	}
-
-	_ = cuenta
-
 	return s.repo.Delete(ctx, id)
 }
 

@@ -111,6 +111,11 @@ func (h *SplitHandler) UpdateMonto(c *gin.Context) {
 		return
 	}
 
+	if *req.MontoEnteros < 0 {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "monto_enteros must be positive"})
+		return
+	}
+
 	if err := h.svc.UpdateMonto(c.Request.Context(), id, *req.MontoEnteros); err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
 		return
