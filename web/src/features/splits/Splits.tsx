@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Settings, Check, Pencil, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
+import { Settings, Check, Pencil, Trash2, ChevronDown, ChevronRight, QrCode, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { splitsApi, Split } from '../../services/api'
 import ConfiguracionSplits from './ConfiguracionSplits'
@@ -19,6 +19,7 @@ export default function Splits() {
   const queryClient = useQueryClient()
   const [showConfig, setShowConfig] = useState(false)
   const [editingSplit, setEditingSplit] = useState<Split | null>(null)
+  const [qrSplit, setQrSplit] = useState<Split | null>(null)
   const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set())
 
   const { data: splitsData, isLoading } = useQuery({
@@ -118,7 +119,7 @@ export default function Splits() {
               <div key={month} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <button
                   onClick={() => toggleMonth(month)}
-                  className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+                  className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -138,7 +139,7 @@ export default function Splits() {
                   <div className="border-t border-gray-200 dark:border-gray-700">
                     <table className="w-full">
                       <thead>
-                        <tr className="bg-gray-50 dark:bg-gray-750">
+                        <tr className="bg-gray-50 dark:bg-gray-700">
                           <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Ingreso</th>
                           <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cuenta</th>
                           <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">%</th>
@@ -149,7 +150,7 @@ export default function Splits() {
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {monthSplits.map(split => (
-                          <tr key={split.id} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+                          <tr key={split.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                             <td className="px-4 py-3">
                               <span className="text-sm text-gray-900 dark:text-white">
                                 #{split.ingreso_id}
@@ -197,6 +198,15 @@ export default function Splits() {
                                 >
                                   <Check className="w-4 h-4" />
                                 </button>
+                                {split.qr_ruta && (
+                                  <button
+                                    onClick={() => setQrSplit(split)}
+                                    className="p-1.5 text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+                                    title="Ver QR"
+                                  >
+                                    <QrCode className="w-4 h-4" />
+                                  </button>
+                                )}
                                 {!split.realizado && (
                                   <>
                                     <button
@@ -235,6 +245,38 @@ export default function Splits() {
 
       {showConfig && <ConfiguracionSplits onClose={() => setShowConfig(false)} />}
       {editingSplit && <EditarSplitModal split={editingSplit} onClose={() => setEditingSplit(null)} />}
+      {qrSplit && <QrModal split={qrSplit} onClose={() => setQrSplit(null)} />}
+    </div>
+  )
+}
+
+function QrModal({ split, onClose }: { split: Split; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-sm w-full" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">QR — {split.cuenta_alias}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-6 flex flex-col items-center gap-4">
+          <img
+            src={`/uploads/${split.qr_ruta}`}
+            alt={`QR ${split.cuenta_alias}`}
+            className="w-64 h-64 object-contain rounded-lg border border-gray-200 dark:border-gray-600"
+          />
+          <div className="text-center">
+            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${tipoBadgeColor[split.cuenta_tipo] || ''}`}>
+              {split.cuenta_tipo}
+            </span>
+          </div>
+          <div className="w-full bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Monto a transferir</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{split.monto_display}</p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

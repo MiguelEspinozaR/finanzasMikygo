@@ -167,7 +167,7 @@ func (s *SplitService) GetAll(ctx context.Context) ([]dto.SplitResponse, error) 
 		resp = append(resp, dto.FormatSplitResponse(
 			split.ID, split.IngresoID, ingreso.MontoEnteros, split.MontoEnteros,
 			ingreso.FechaPago,
-			cuenta.Alias, cuenta.Tipo,
+			cuenta.ID, cuenta.Alias, cuenta.Tipo, cuenta.QrRuta,
 			config.Porcentaje,
 			split.Realizado, split.FechaRealizado,
 			split.CreatedAt, split.UpdatedAt,
@@ -203,7 +203,7 @@ func (s *SplitService) GetByIngresoID(ctx context.Context, ingresoID int64) ([]d
 		resp = append(resp, dto.FormatSplitResponse(
 			split.ID, split.IngresoID, ingreso.MontoEnteros, split.MontoEnteros,
 			ingreso.FechaPago,
-			cuenta.Alias, cuenta.Tipo,
+			cuenta.ID, cuenta.Alias, cuenta.Tipo, cuenta.QrRuta,
 			config.Porcentaje,
 			split.Realizado, split.FechaRealizado,
 			split.CreatedAt, split.UpdatedAt,

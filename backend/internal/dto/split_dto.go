@@ -38,8 +38,10 @@ type SplitResponse struct {
 	IngresoID       int64   `json:"ingreso_id"`
 	IngresoMonto    int64   `json:"ingreso_monto"`
 	IngresoFechaPago string `json:"ingreso_fecha_pago"`
+	CuentaID        int64   `json:"cuenta_id"`
 	CuentaAlias     string  `json:"cuenta_alias"`
 	CuentaTipo      string  `json:"cuenta_tipo"`
+	QrRuta          *string `json:"qr_ruta"`
 	Porcentaje      float64 `json:"porcentaje"`
 	MontoEnteros    int64   `json:"monto_enteros"`
 	MontoDisplay    string  `json:"monto_display"`
@@ -56,7 +58,8 @@ type SplitListResponse struct {
 func FormatSplitResponse(
 	id, ingresoID, ingresoMonto, montoEnteros int64,
 	ingresoFechaPago time.Time,
-	cuentaAlias, cuentaTipo string,
+	cuentaID int64, cuentaAlias, cuentaTipo string,
+	qrRuta *string,
 	porcentaje float64,
 	realizado bool,
 	fechaRealizado *time.Time,
@@ -73,8 +76,10 @@ func FormatSplitResponse(
 		IngresoID:        ingresoID,
 		IngresoMonto:     ingresoMonto,
 		IngresoFechaPago: ingresoFechaPago.Format("2006-01-02"),
+		CuentaID:         cuentaID,
 		CuentaAlias:      cuentaAlias,
 		CuentaTipo:       cuentaTipo,
+		QrRuta:           qrRuta,
 		Porcentaje:       porcentaje,
 		MontoEnteros:     montoEnteros,
 		MontoDisplay:     FormatMonto(montoEnteros),

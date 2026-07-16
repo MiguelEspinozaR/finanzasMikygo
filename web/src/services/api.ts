@@ -135,8 +135,10 @@ export interface Split {
   ingreso_id: number
   ingreso_monto: number
   ingreso_fecha_pago: string
+  cuenta_id: number
   cuenta_alias: string
   cuenta_tipo: string
+  qr_ruta: string | null
   porcentaje: number
   monto_enteros: number
   monto_display: string

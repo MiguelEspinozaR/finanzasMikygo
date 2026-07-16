@@ -48,7 +48,7 @@ export default function EditarSplitModal({ split, onClose }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3 space-y-2">
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Ingreso:</span>
               <span className="text-gray-900 dark:text-white">#{split.ingreso_id}</span>
