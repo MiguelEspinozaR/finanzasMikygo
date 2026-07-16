@@ -152,6 +152,10 @@ if pgrep -f "cloudflared tunnel" >/dev/null 2>&1; then
     pkill -9 -f "cloudflared tunnel" 2>/dev/null
     KILLED=$((KILLED + 1))
 fi
+if command -v fuser &>/dev/null; then
+    fuser -k 8080/tcp 2>/dev/null
+    fuser -k 5173/tcp 2>/dev/null
+fi
 
 if [ "$KILLED" -gt 0 ]; then
     sleep 2
@@ -220,6 +224,14 @@ fi
 
 ok "Tunnel activo: $TUNNEL_URL"
 
+info "Configurando allowedHosts para $TUNNEL_URL..."
+sed -i "s|allowedHosts: 'all'|allowedHosts: ['$TUNNEL_URL']|g" "$DIR/web/vite.config.ts"
+if grep -q "$TUNNEL_URL" "$DIR/web/vite.config.ts"; then
+    ok "allowedHosts configurado"
+else
+    err "sed falló - allowedHosts no se actualizó"
+fi
+
 # ==========================================
 # [6/7] Backend
 # ==========================================
@@ -258,7 +270,7 @@ echo ""
 echo -e "${CYAN}[7/7]${NC} Iniciando Frontend..."
 
 cd "$DIR/web"
-node_modules/.bin/vite --host 0.0.0.0 --allowed-hosts all > "$FRONTEND_LOG" 2>&1 &
+node_modules/.bin/vite --host 0.0.0.0 > "$FRONTEND_LOG" 2>&1 &
 FRONTEND_PID=$!
 cd "$DIR"
 
@@ -296,5 +308,7 @@ echo ""
 echo "  Ctrl+C para detener todos"
 echo -e "${GREEN}========================================${NC}"
 echo ""
+
+sed -i "s|allowedHosts: \['.*'\]|allowedHosts: 'all'|g" "$DIR/web/vite.config.ts"
 
 wait
