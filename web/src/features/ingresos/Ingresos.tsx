@@ -2,9 +2,9 @@ import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Pencil, Trash2, ChevronDown, ChevronRight, Camera, Eye, X } from 'lucide-react'
+import { Pencil, Trash2, ChevronDown, ChevronRight, Camera, Eye, X, Diamond } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { ingresosApi, Ingreso } from '../../services/api'
+import { ingresosApi, splitsApi, Ingreso } from '../../services/api'
 
 export default function Ingresos() {
   const queryClient = useQueryClient()
@@ -28,6 +28,27 @@ export default function Ingresos() {
   })
 
   const ingresos = response?.data || []
+
+  const { data: ingresosConSplitsData } = useQuery({
+    queryKey: ['splits', 'ingresos-con-splits'],
+    queryFn: () => splitsApi.getIngresosConSplits().then(r => r.data),
+  })
+
+  const ingresosConSplits = useMemo(() => {
+    return new Set(ingresosConSplitsData?.data || [])
+  }, [ingresosConSplitsData])
+
+  const generarSplitsMutation = useMutation({
+    mutationFn: (ingresoId: number) => splitsApi.generarPorIngreso(ingresoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['splits'] })
+      toast.success('Splits generados')
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.error || 'Error al generar splits'
+      toast.error(msg)
+    },
+  })
 
   const groupedByYear = useMemo(() => {
     const map = new Map<number, Ingreso[]>()
@@ -244,6 +265,15 @@ export default function Ingresos() {
                                   >
                                     <Pencil className="w-4 h-4" />
                                   </button>
+                                  {!ingresosConSplits.has(ing.id) && (
+                                    <button
+                                      onClick={() => generarSplitsMutation.mutate(ing.id)}
+                                      className="p-1.5 text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded"
+                                      title="Agregar a splits"
+                                    >
+                                      <Diamond className="w-4 h-4" />
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => handleDelete(ing.id)}
                                     className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"

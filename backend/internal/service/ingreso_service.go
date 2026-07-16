@@ -12,11 +12,12 @@ import (
 )
 
 type IngresoService struct {
-	repo *repository.IngresoRepository
+	repo      *repository.IngresoRepository
+	splitSvc  *SplitService
 }
 
-func NewIngresoService(repo *repository.IngresoRepository) *IngresoService {
-	return &IngresoService{repo: repo}
+func NewIngresoService(repo *repository.IngresoRepository, splitSvc *SplitService) *IngresoService {
+	return &IngresoService{repo: repo, splitSvc: splitSvc}
 }
 
 func (s *IngresoService) Create(ctx context.Context, req dto.CreateIngresoRequest) (*dto.IngresoResponse, error) {
@@ -49,6 +50,8 @@ func (s *IngresoService) Create(ctx context.Context, req dto.CreateIngresoReques
 		return nil, err
 	}
 
+	s.splitSvc.GenerarSplits(ctx, ingreso.ID, ingreso.MontoEnteros)
+
 	return s.toResponse(ingreso), nil
 }
 
@@ -69,6 +72,8 @@ func (s *IngresoService) splitMonto(ingreso *model.Ingreso) {
 		}
 	}
 }
+
+
 
 func (s *IngresoService) GetAll(ctx context.Context, fechaInicio, fechaFin *time.Time, tipo *string, page, pageSize int) (*dto.IngresoListResponse, error) {
 	if page < 1 {

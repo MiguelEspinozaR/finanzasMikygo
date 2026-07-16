@@ -1,15 +1,17 @@
 import { Routes, Route, NavLink } from 'react-router-dom'
-import { LayoutDashboard, CalendarPlus, List, Database, Sun, Moon } from 'lucide-react'
+import { LayoutDashboard, CalendarPlus, List, Database, Sun, Moon, PieChart } from 'lucide-react'
 import { useTheme } from './context/ThemeContext'
 import Dashboard from './features/dashboard/Dashboard'
 import RegistrarIngreso from './features/registrar/RegistrarIngreso'
 import Ingresos from './features/ingresos/Ingresos'
 import SQLTab from './features/sql/SQLTab'
+import Splits from './features/splits/Splits'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/registrar', label: 'Registrar', icon: CalendarPlus },
   { to: '/ingresos', label: 'Ingresos', icon: List },
+  { to: '/splits', label: 'Splits', icon: PieChart },
   { to: '/sql', label: 'SQL', icon: Database },
 ]
 
@@ -67,6 +69,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/registrar" element={<RegistrarIngreso />} />
           <Route path="/ingresos" element={<Ingresos />} />
+          <Route path="/splits" element={<Splits />} />
           <Route path="/sql" element={<SQLTab />} />
         </Routes>
       </main>

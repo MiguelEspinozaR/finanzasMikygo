@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
-# Binaries for programs and plugins
-=======
 # Environment
 .env
 .env.local
@@ -14,37 +8,11 @@ backend/.env
 backend/tmp/
 backend/vendor/
 backend/coverage/
->>>>>>> 9135c11 (1st commit despues de desarrollar unos dias xD)
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
-<<<<<<< HEAD
-
-# Test binary, built with `go test -c`
-*.test
-
-# Code coverage profiles and other test artifacts
-*.out
-coverage.*
-*.coverprofile
-profile.cov
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
-
-# Go workspace file
-go.work
-go.work.sum
-
-# env file
-.env
-
-# Editor/IDE
-# .idea/
-# .vscode/
-=======
 *.test
 *.out
 backend/go.work
@@ -70,6 +38,7 @@ mobile/.pub/
 mobile/android/.gradle/
 mobile/android/app/build/
 mobile/android/build/
+mobile/android/local.properties
 mobile/ios/Pods/
 mobile/ios/.symlinks/
 mobile/ios/Flutter/Flutter.framework
@@ -79,7 +48,7 @@ mobile/macos/Pods/
 mobile/macos/Flutter/ephemeral/
 mobile/web/favicon.png
 
-# IDE
+# Editor/IDE
 .vscode/
 .idea/
 *.swp
@@ -110,4 +79,3 @@ yarn-error.log*
 *.tmp
 *.temp
 .cache/
->>>>>>> 9135c11 (1st commit despues de desarrollar unos dias xD)
