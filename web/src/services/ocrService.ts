@@ -51,9 +51,7 @@ function parseFechaPago(text: string): string | null {
 }
 
 function parseFechasTrabajo(text: string, fallbackYear: number, fallbackMonth: number): string[] {
-  const refMatch = text.match(/Referencia:\s*(.+)/i)
-  if (!refMatch) return []
-  const ref = refMatch[1].trim()
+  console.log('[OCR] parseFechasTrabajo input text:', text)
 
   const monthNames = Object.keys(MONTH_MAP)
   const monthRegex = monthNames.join('|')
@@ -63,7 +61,8 @@ function parseFechasTrabajo(text: string, fallbackYear: number, fallbackMonth: n
     `(\\d{1,2})\\s*(?:al|-|hasta)\\s*(\\d{1,2})\\s*${monthCapture}`,
     'i'
   )
-  const rangeMatch = ref.match(rangePattern)
+  const rangeMatch = text.match(rangePattern)
+  console.log('[OCR] rangePattern match on full text:', rangeMatch)
   if (rangeMatch) {
     const start = parseInt(rangeMatch[1])
     const end = parseInt(rangeMatch[2])
@@ -77,6 +76,7 @@ function parseFechasTrabajo(text: string, fallbackYear: number, fallbackMonth: n
         dates.push(`${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`)
       }
     }
+    console.log('[OCR] rangePattern dates:', dates)
     if (dates.length > 0) return dates
   }
 
@@ -84,14 +84,15 @@ function parseFechasTrabajo(text: string, fallbackYear: number, fallbackMonth: n
     `(\\d{1,2})(?:\\s*,\\s*|\\s+y\\s+)*(\\d{0,2})\\s*${monthCapture}`,
     'i'
   )
-  const listMatch = ref.match(listPattern)
+  const listMatch = text.match(listPattern)
+  console.log('[OCR] listPattern match:', listMatch)
   if (listMatch) {
     const monthName = listMatch[3].toLowerCase()
     const month = MONTH_MAP[monthName] ?? fallbackMonth
     const year = fallbackYear
     const days: number[] = [parseInt(listMatch[1])]
     if (listMatch[2]) days.push(parseInt(listMatch[2]))
-    const commaMatches = ref.match(/(\d{1,2})\s*,/g)
+    const commaMatches = text.match(/(\d{1,2})\s*,/g)
     if (commaMatches) {
       for (const cm of commaMatches) {
         const num = parseInt(cm)
@@ -106,11 +107,13 @@ function parseFechasTrabajo(text: string, fallbackYear: number, fallbackMonth: n
         dates.push(`${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`)
       }
     }
+    console.log('[OCR] listPattern dates:', dates)
     if (dates.length > 0) return dates
   }
 
   const singlePattern = new RegExp(`(\\d{1,2})\\s+de\\s*${monthCapture}`, 'i')
-  const singleMatch = ref.match(singlePattern)
+  const singleMatch = text.match(singlePattern)
+  console.log('[OCR] singlePattern match:', singleMatch)
   if (singleMatch) {
     const day = parseInt(singleMatch[1])
     const monthName = singleMatch[2].toLowerCase()
@@ -121,11 +124,15 @@ function parseFechasTrabajo(text: string, fallbackYear: number, fallbackMonth: n
     }
   }
 
+  console.log('[OCR] parseFechasTrabajo: no dates found')
   return []
 }
 
 export function parseReceipt(rawText: string): OcrReceiptData {
+  console.log('[OCR] rawText:', rawText)
   const text = rawText.replace(/\n/g, ' ').replace(/\s{2,}/g, ' ')
+  console.log('[OCR] normalized text:', text)
+
   const monto = parseMonto(text)
   const fechaPago = parseFechaPago(text)
 
@@ -137,17 +144,22 @@ export function parseReceipt(rawText: string): OcrReceiptData {
     fallbackMonth = parseInt(m) - 1
   }
 
+  console.log('[OCR] monto:', monto, 'fechaPago:', fechaPago, 'fallbackYear:', fallbackYear, 'fallbackMonth:', fallbackMonth)
+
   const fechasTrabajo = parseFechasTrabajo(text, fallbackYear, fallbackMonth)
 
-  const refMatch = text.match(/Referencia:\s*(.+)/i)
+  const refMatch = text.match(/Referencia:\s*(.+?)(?:\s+Fecha|\s+Hora|\s+Se |\s+Monto|\s+Su\s|$)/i)
+  console.log('[OCR] refMatch:', refMatch)
 
-  return {
+  const result = {
     monto,
     fechaPago,
     fechasTrabajo,
     referencia: refMatch ? refMatch[1].trim() : null,
     rawText,
   }
+  console.log('[OCR] parseReceipt result:', result)
+  return result
 }
 
 export async function recognizeReceipt(
