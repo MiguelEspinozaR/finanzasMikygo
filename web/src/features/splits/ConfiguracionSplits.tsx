@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Plus, GripVertical, Trash2 } from 'lucide-react'
+import { X, Plus, GripVertical, Trash2, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { splitsApi, cuentasApi, SplitConfig, Cuenta } from '../../services/api'
 import CuentaModal from './CuentaModal'
@@ -25,6 +25,11 @@ export default function ConfiguracionSplits({ onClose }: Props) {
   const { data: configData, isLoading: loadingConfig } = useQuery({
     queryKey: ['splits', 'config'],
     queryFn: () => splitsApi.getConfig().then(r => r.data),
+  })
+
+  const { data: cuentasData } = useQuery({
+    queryKey: ['cuentas'],
+    queryFn: () => cuentasApi.getAll().then(r => r.data),
   })
 
   const updateConfig = useMutation({
@@ -84,6 +89,7 @@ export default function ConfiguracionSplits({ onClose }: Props) {
   const handleCuentaCreated = () => {
     queryClient.invalidateQueries({ queryKey: ['cuentas'] })
     queryClient.invalidateQueries({ queryKey: ['splits', 'config'] })
+    queryClient.invalidateQueries({ queryKey: ['splits'] })
     setShowCuentaModal(false)
   }
 
@@ -105,37 +111,48 @@ export default function ConfiguracionSplits({ onClose }: Props) {
           ) : (
             <>
               <div className="space-y-3">
-                {displayConfigs.map(config => (
-                  <div key={config.cuenta_id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-750 rounded-lg">
-                    <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                {displayConfigs.map(config => {
+                  const cuenta = cuentasData?.find(c => c.id === config.cuenta_id)
+                  return (
+                    <div key={config.cuenta_id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                      <GripVertical className="w-4 h-4 text-gray-400 dark:text-gray-500 cursor-move" />
+                      <div className="flex-1 flex items-center gap-2">
                         <span className="font-medium text-gray-900 dark:text-white">{config.cuenta_alias}</span>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${tipoBadgeColor[config.cuenta_tipo] || ''}`}>
                           {config.cuenta_tipo}
                         </span>
+                        <button
+                          onClick={() => {
+                            setEditingCuenta(cuenta || null)
+                            setShowCuentaModal(true)
+                          }}
+                          className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                          title="Ver detalles"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          value={config.porcentaje}
+                          onChange={(e) => handlePorcentajeChange(config.cuenta_id, parseFloat(e.target.value) || 0)}
+                          className="w-20 px-2 py-1 text-right border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                        <span className="text-sm text-gray-500 dark:text-gray-400">%</span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteCuenta(config.cuenta_id)}
+                        className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={config.porcentaje}
-                        onChange={(e) => handlePorcentajeChange(config.cuenta_id, parseFloat(e.target.value) || 0)}
-                        className="w-20 px-2 py-1 text-right border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                      <span className="text-sm text-gray-500">%</span>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteCuenta(config.cuenta_id)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
