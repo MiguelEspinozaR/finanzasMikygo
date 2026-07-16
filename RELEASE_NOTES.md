@@ -1,67 +1,105 @@
-# Release Notes — v0.9.0
+# Release Notes — v1.0.0
 
-**Fecha:** 07 de julio de 2026
+**Fecha:** 16 de julio de 2026
 
 ## Features Nuevos
 
-### Tipo de pago: QR / Efectivo
-- El tipo de ingreso cambió de `diario|semanal` a `qr|efectivo`
-- Badge visual: QR → cyan, Efectivo → naranja
-- Migración automática de registros existentes (173 registros: semanal → qr)
+### Sistema de Splits (Reparto de Ingresos en Cuentas)
+- Reparto automático de ingresos en múltiples cuentas bancarias por porcentaje
+- Configuración de splits: porcentaje por cuenta, orden de visualización
+- Generación de splits por ingreso desde la lista (botón diamante)
+- Marcar splits como realizados con fecha de realización
+- Edición de montos individuales de splits
+- Eliminación de splits individuales
+- Validación: total de porcentajes no puede superar 100%
 
-### Pagos duplicados en la misma fecha
-- Se permiten múltiples ingresos con la misma fecha de pago
-- Herramienta `trabajo`: bloqueada si la fecha ya tiene un pago registrado
-- Herramienta `pago`: siempre permite registrar en fechas existentes
-- En la tabla de ingresos, los registros del mismo día se agrupan visualmente con fondo sutil y fila de subtotal
+### CRUD de Cuentas Bancarias
+- Crear, editar y eliminar cuentas
+- Campos: alias, banco, número de cuenta, tipo (ahorro/corriente/virtual/física)
+- Upload de imagen QR para transferencias
+- Drag & drop para subir QR
+- Soft delete con `deleted_at`
 
-### Drag & Drop para comprobantes
-- Zona de arrastrar y soltar para adjuntar imágenes en el formulario de registro
-- Preview de imagen seleccionada con botón de eliminar
-- Validación de tipo de archivo (solo imágenes)
-- Feedback visual durante el arrastre (borde y fondo cambian)
+### QR Modal para Transferencias
+- Al marcar un split como realizado, se muestra modal con:
+  - Imagen QR de la cuenta destino
+  - Monto a transferir formateado
+  - Botón para cerrar
 
-### Detalles de ingreso mejorados
-- Día de la semana en español: "15/06/2026 (lunes)"
-- Sección Comentario siempre visible: "Ingreso sin comentarios" si está vacío
-- Sección Comprobante siempre visible: "Ingreso sin comprobante" si no hay imagen
-- Calendario eliminado del modal de detalles
+### OCR Comprobantes Bancarios (Tesseract.js)
+- Extracción automática de fecha de pago, monto y referencia desde imágenes
+- Normalización de texto OCR (espacios, newlines)
+- Patrón `flexRangePattern`: detecta rangos como "25 al 27" aunque OCR separe los números
+- Referencia bounded: regex que termina antes de "Fecha", "Hora", "Monto", "Se ", "Su "
+- Búsqueda de referencia en texto completo cuando OCR separa líneas
+- Fallback a label cuando no se encuentra referencia
 
-### Upload de imagen con persistencia automática
-- El backend ahora actualiza `imagen_ruta` en la DB automáticamente al subir una imagen con `ingreso_id`
-- Corregido bug donde las imágenes se guardaban en disco pero no se persistían en la base de datos
+### Acceso Externo a Frontend
+- Vite configurado con `host: '0.0.0.0'` para acceso desde red local
+- `run.sh` ejecuta vite directamente con `--host`
 
 ## Bug Fixes
 
-- **Imagen eliminada al editar**: El endpoint `PUT /ingresos/:id` sobreescribía `imagen_ruta` con `null` cuando no se enviaba en el payload. Ahora solo actualiza si el valor no es nulo
-- **Comentario no visible**: El modal de detalles no mostraba el campo comentario. Ahora siempre se muestra con fallback
-- **Ingreso 173**: Restaurada `imagen_ruta` en la base de datos
+### Backend
+- **MarcarRealizado scan bug**: `split_repository.go` reemplazado `.Scan(&updatedAt, &updatedAt)` con calls a `Exec`
+- **RecalculatePendingSplits overwrite**: `split_service.go` cambiado a per-split `UpdateMonto` en lugar de query masiva
+- **Duplicación generarSplits**: `ingreso_service.go` eliminado función duplicada, llama a `SplitService.GenerarSplits`
+- **CuentaModal submit**: botón de submit movido dentro del `<form>` en `CuentaModal.tsx`
+- **Validación porcentajes**: rechaza total > 100% en `split_service.go`
+- **Validación monto negativo**: rechaza valores negativos en `split_handler.go`
+- **ON DELETE CASCADE → RESTRICT**: migración `009_fix_cascade_to_restrict` para `split_configuraciones`
+- **Router**: endpoint de QR corregido de PUT a POST
 
-## Breaking Changes
+### Frontend
+- **Dark mode**: `gray-750` → `gray-700` en ConfiguracionSplits, Splits.tsx, EditarSplitModal.tsx
+- **cuentasData crash**: extracción `cuentasData?.data` para evitar undefined
+- **Splits排序**: lista ordenada por #ingreso descendente
 
-- **Cambio de esquema**: La columna `tipo` ahora acepta `'qr'` o `'efectivo'` en lugar de `'diario'` o `'semanal'`
-- **Migración requerida**: Ejecutar `007_change_tipo_to_qr_efectivo.up.sql` para actualizar el constraint y migrar datos existentes
+### OCR
+- **Referencia regex**: bounded con terminadores explícitos (`Fecha`, `Hora`, `Se `, `Monto`, `Su `, `$`)
+- **flexRangePattern**: encuentra rangos "25 al 27" aunque OCR los separe en líneas distintas
+- **Normalización**: `\n` reemplazado por espacios en texto OCR completo
+- **Fallback Referencia**: búsqueda en texto completo → texto antes de "Referencia:" → label
+
+## Migraciones
+
+| Archivo | Descripción |
+|---------|-------------|
+| `008_create_splits.up.sql` | Tablas `cuentas`, `split_configuraciones`, `splits` con índices |
+| `008_create_splits.down.sql` | Rollback: elimina las 3 tablas |
+| `009_fix_cascade_to_restrict.up.sql` | Cambia `ON DELETE CASCADE` a `ON DELETE RESTRICT` en `split_configuraciones` |
+| `009_fix_cascade_to_restrict.down.sql` | Rollback: restaura `ON DELETE CASCADE` |
 
 ## Archivos Modificados
 
 ### Backend
-- `internal/handler/ingreso_handler.go` — Upload auto-actualiza `imagen_ruta`
-- `internal/service/ingreso_service.go` — `UpdateImagenRuta()`, asignación condicional en `Update()`
-- `internal/repository/ingreso_repository.go` — `UpdateImagenRuta()`
-- `internal/dto/ingreso_dto.go` — Tipos `qr|efectivo`
+- `internal/handler/split_handler.go` — CRUD splits, cuentas, QR, MarcarRealizado, GenerarPorIngreso, GetIngresosConSplits
+- `internal/service/split_service.go` — GenerarSplits, GenerarPorIngreso, GetIngresosConSplits, validación porcentajes
+- `internal/repository/split_repository.go` — HasAnySplits, GetIngresosConSplits, MarcarRealizado fix
+- `internal/dto/split_dto.go` — SplitResponse con cuenta_id, qr_ruta; FormatSplitResponse
+- `internal/model/split.go` — Modelos de Split, SplitConfiguracion, Cuenta
+- `internal/router/router.go` — Rutas de splits y cuentas, endpoint QR corregido
+- `internal/service/ingreso_service.go` — Eliminado generarSplits duplicado
 
 ### Frontend (Web)
-- `features/ingresos/Ingresos.tsx` — DetallesModal simplificado, subtotales agrupados, fallbacks
-- `features/registrar/RegistrarIngreso.tsx` — Drag & drop, pagos duplicados permitidos
-- `services/api.ts` — Tipos actualizados
+- `features/splits/Splits.tsx` — Lista de splits, QR modal, botón realizado con tooltip, hover dark mode
+- `features/splits/ConfiguracionSplits.tsx` — Dark mode fix, botón editar
+- `features/splits/CuentaModal.tsx` — Drag & drop QR, submit en form
+- `features/splits/EditarSplitModal.tsx` — Dark mode fix
+- `features/ingresos/Ingresos.tsx` — Botón diamante para agregar splits
+- `services/api.ts` — Endpoints de splits, cuentas, ingresos-con-splits
+- `services/ocrService.ts` — Normalización, Referencia bounded, flexRangePattern
 
-### Migraciones
-- `007_change_tipo_to_qr_efectivo.up.sql` — Constraint `qr|efectivo`, migración de datos
-- `007_change_tipo_to_qr_efectivo.down.sql` — Rollback a `diario|semanal`
+### Configuración
+- `vite.config.ts` — `host: '0.0.0.0'` para acceso externo
+- `run.sh` — vite ejecutado directamente con `--host 0.0.0.0`
 
 ## Estado
 
 - **Backend**: Compila sin errores
-- **Frontend**: Typecheck sin errores
-- **DB**: 174 registros, constraint actualizado
-- **Mobile**: Pendiente de actualizar para reflejar cambio de tipo
+- **Frontend**: Funcional con acceso externo
+- **DB**: Migraciones 008 y 009 ejecutadas
+- **OCR**: Funcional con normalización y patrones avanzados
+- **Splits**: CRUD completo, generación por porcentaje, marcar realizado
+- **QR**: Upload, visualización en modal, eliminación
+- **Dark mode**: Corregido en todos los componentes de splits

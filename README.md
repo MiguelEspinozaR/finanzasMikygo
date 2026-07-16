@@ -17,11 +17,16 @@ Gestor de ingresos laborales multiplataforma (Web + Android).
 - Subida de comprobantes con drag & drop y preview
 - Detalles de ingreso con día de semana en español
 - Tipo de pago: QR / Efectivo
+- **Splits**: reparto de ingresos en cuentas bancarias por porcentaje
+- **CRUD cuentas**: alias, banco, tipo, número, QR upload
+- **QR modal**: visualización de QR + monto a transferir
+- **OCR comprobantes**: extracción automática de fecha, monto y referencia
 - Moneda BOB (Bolivianos), montos en centavos
 - Dark/Light mode (web), system theme (mobile)
 - Timezone: America/La_Paz (UTC-4)
 - SQL Console (solo web, modo desarrollo)
 - API REST con Swagger
+- **Acceso externo**: frontend accesible desde red local
 
 ## Ejecución
 
@@ -43,6 +48,8 @@ finanzasMikygo/
 ├── web/              # React SPA
 ├── mobile/           # Flutter app
 ├── CONTEXT.md        # Documentación técnica completa
-├── run.bat           # Panel de inicio rápido
+├── RELEASE_NOTES.md  # Notas de versión
+├── run.bat           # Panel de inicio rápido (Windows)
+├── run.sh            # Panel de inicio rápido (Linux/WSL)
 └── .gitignore
 ```

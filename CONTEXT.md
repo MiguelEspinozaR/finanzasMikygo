@@ -39,15 +39,22 @@ finanzasMikygo/
 │   │   ├── handler/
 │   │   │   ├── ingreso_handler.go
 │   │   │   ├── dashboard_handler.go
-│   │   │   └── sql_handler.go
+│   │   │   ├── sql_handler.go
+│   │   │   └── split_handler.go      # CRUD splits, cuentas, QR
 │   │   ├── service/
 │   │   │   ├── ingreso_service.go    # splitMonto, ParseInLocation
-│   │   │   └── dashboard_service.go
+│   │   │   ├── dashboard_service.go
+│   │   │   └── split_service.go      # GenerarSplits, validación %
 │   │   ├── repository/
 │   │   │   ├── ingreso_repository.go
-│   │   │   └── dashboard_repository.go
-│   │   ├── model/ingreso.go          # FechaTrabajo struct
-│   │   ├── dto/ingreso_dto.go        # FechaTrabajoRequest/Response
+│   │   │   ├── dashboard_repository.go
+│   │   │   └── split_repository.go   # HasAnySplits, GetIngresosConSplits
+│   │   ├── model/
+│   │   │   ├── ingreso.go            # FechaTrabajo struct
+│   │   │   └── split.go              # Split, SplitConfiguracion, Cuenta
+│   │   ├── dto/
+│   │   │   ├── ingreso_dto.go        # FechaTrabajoRequest/Response
+│   │   │   └── split_dto.go          # SplitResponse con cuenta_id, qr_ruta
 │   │   ├── router/router.go
 │   │   └── middleware/cors.go
 │   ├── migrations/
@@ -59,6 +66,10 @@ finanzasMikygo/
 │   │   ├── 006_backfill_monto_fechas_trabajo.sql
 │   │   ├── 007_change_tipo_to_qr_efectivo.up.sql
 │   │   ├── 007_change_tipo_to_qr_efectivo.down.sql
+│   │   ├── 008_create_splits.up.sql
+│   │   ├── 008_create_splits.down.sql
+│   │   ├── 009_fix_cascade_to_restrict.up.sql
+│   │   ├── 009_fix_cascade_to_restrict.down.sql
 │   │   └── *.down.sql
 │   ├── uploads/
 │   ├── docs/
@@ -69,6 +80,11 @@ finanzasMikygo/
 │   │   ├── features/dashboard/Dashboard.tsx
 │   │   ├── features/registrar/RegistrarIngreso.tsx
 │   │   ├── features/ingresos/Ingresos.tsx
+│   │   ├── features/splits/
+│   │   │   ├── Splits.tsx              # Lista splits, QR modal
+│   │   │   ├── ConfiguracionSplits.tsx  # Config % por cuenta
+│   │   │   ├── CuentaModal.tsx          # CRUD cuentas, drag & drop QR
+│   │   │   └── EditarSplitModal.tsx     # Editar monto split
 │   │   ├── features/sql/SQLTab.tsx
 │   │   ├── services/api.ts
 │   │   ├── context/ThemeContext.tsx
@@ -120,6 +136,42 @@ CREATE TABLE ingreso_fechas_trabajo (
     monto_enteros BIGINT NOT NULL DEFAULT 0,  -- monto distribuido por día
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Tabla de cuentas bancarias (migración 008)
+CREATE TABLE cuentas (
+    id SERIAL PRIMARY KEY,
+    alias VARCHAR(100) NOT NULL,
+    banco VARCHAR(100),
+    numero_cuenta VARCHAR(50),
+    tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('ahorro', 'corriente', 'virtual', 'fisica')),
+    qr_ruta VARCHAR(500),
+    deleted_at TIMESTAMP WITH TIME ZONE,  -- soft delete
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Configuración de splits: porcentaje por cuenta (migración 008)
+CREATE TABLE split_configuraciones (
+    id SERIAL PRIMARY KEY,
+    cuenta_id INTEGER NOT NULL REFERENCES cuentas(id) ON DELETE RESTRICT,  -- 009: RESTRICT
+    porcentaje DECIMAL(5,2) NOT NULL DEFAULT 0,
+    orden INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(cuenta_id)
+);
+
+-- Splits generados por cada ingreso (migración 008)
+CREATE TABLE splits (
+    id SERIAL PRIMARY KEY,
+    ingreso_id INTEGER NOT NULL REFERENCES ingresos(id) ON DELETE CASCADE,
+    split_configuracion_id INTEGER NOT NULL REFERENCES split_configuraciones(id),
+    monto_enteros BIGINT NOT NULL,
+    realizado BOOLEAN NOT NULL DEFAULT FALSE,
+    fecha_realizado TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 ```
 
 ## Datos Migrados
@@ -152,6 +204,24 @@ GET    /api/v1/dashboard/history                      # Histórico (líneas + pr
 
 POST   /api/v1/sql/execute           # Ejecutar query (dev only)
 GET    /api/v1/sql/schema            # Info de tablas
+
+GET    /api/v1/splits/config         # Obtener configuración de splits
+PUT    /api/v1/splits/config         # Actualizar configuración (valida % ≤ 100)
+GET    /api/v1/splits/ingresos-con-splits  # IDs de ingresos que ya tienen splits
+POST   /api/v1/splits/generar/:id    # Generar splits para un ingreso
+GET    /api/v1/splits                # Listar todos los splits
+GET    /api/v1/splits/ingreso/:id    # Splits de un ingreso específico
+PUT    /api/v1/splits/:id/realizar   # Marcar split como realizado
+PUT    /api/v1/splits/:id            # Actualizar monto de un split
+DELETE /api/v1/splits/:id            # Eliminar un split
+
+POST   /api/v1/cuentas               # Crear cuenta
+GET    /api/v1/cuentas               # Listar cuentas (excluye soft deleted)
+GET    /api/v1/cuentas/:id           # Obtener cuenta por ID
+PUT    /api/v1/cuentas/:id           # Actualizar cuenta
+DELETE /api/v1/cuentas/:id           # Soft delete (deleted_at)
+POST   /api/v1/cuentas/:id/qr        # Subir imagen QR (drag & drop)
+DELETE /api/v1/cuentas/:id/qr        # Eliminar QR
 
 GET    /swagger/*any                 # Swagger UI
 ```
@@ -205,6 +275,25 @@ GET    /swagger/*any                 # Swagger UI
 - Herramienta `pago`: siempre permite registrar en fechas existentes
 - Herramienta `quitar`: siempre permite operar
 - En la tabla de ingresos, los registros del mismo día se agrupan visualmente con fondo sutil y fila de subtotal
+
+### Splits (Reparto de Ingresos en Cuentas)
+- Cada ingreso puede generarse splits distribuidos en cuentas por porcentaje
+- Total de porcentajes no puede superar 100% (validación en backend)
+- Splits se generan automáticamente: `monto * (porcentaje / 100)`, redondeado a centavos
+- Cada split tiene monto_individual, realizado (bool), fecha_realizado
+- Botón "diamante" en lista de ingresos: genera splits si el ingreso no los tiene
+- Lista de splits ordenada por #ingreso descendente
+- Botón "Marcar realizado": muestra QR de la cuenta + monto a transferir
+- Splits realizados muestran fecha de realización con tooltip
+- Soft delete para cuentas: `deleted_at` en lugar de eliminación física
+- ON DELETE RESTRICT en `split_configuraciones.cuenta_id` (009) para evitar borrados accidentales
+
+### OCR Comprobantes Bancarios
+- Normalización: `\n` → espacios, búsqueda en texto completo
+- Patrón `flexRangePattern`: detecta "25 al 27" aunque OCR separe los números
+- Referencia bounded: regex termina antes de "Fecha", "Hora", "Se ", "Monto", "Su ", `$`
+- Búsqueda cascade: texto completo → texto antes de "Referencia:" → label
+- Meses en español: enero-diciembre
 
 ### Detalles de Ingreso
 - Calendario eliminado del modal de detalles
@@ -270,6 +359,8 @@ cd mobile && flutter run                    # Emulador/dispositivo
 | Splits (reparto de ingresos en cuentas) | ✅ Completo |
 | Configuración de splits y cuentas | ✅ Completo |
 | CRUD cuentas (alias, banco, tipo, QR) | ✅ Completo |
+| QR modal para transferencias | ✅ Completo |
+| Acceso externo frontend (host 0.0.0.0) | ✅ Completo |
 | SQL Tab frontend | ✅ Completo |
 | Dark/Light mode | ✅ Completo |
 | Flutter Dashboard (4 cards, 4 gráficos) | ✅ Completo |
