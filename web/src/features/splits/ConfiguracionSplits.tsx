@@ -54,6 +54,7 @@ export default function ConfiguracionSplits({ onClose }: Props) {
   })
 
   const configs = configData?.data || []
+  const cuentas = cuentasData?.data || []
 
   const [localConfigs, setLocalConfigs] = useState<SplitConfig[]>([])
 
@@ -112,7 +113,7 @@ export default function ConfiguracionSplits({ onClose }: Props) {
             <>
               <div className="space-y-3">
                 {displayConfigs.map(config => {
-                  const cuenta = cuentasData?.find(c => c.id === config.cuenta_id)
+                  const cuenta = cuentas.find(c => c.id === config.cuenta_id)
                   return (
                     <div key={config.cuenta_id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                       <GripVertical className="w-4 h-4 text-gray-400 dark:text-gray-500 cursor-move" />
