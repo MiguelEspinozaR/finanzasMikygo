@@ -149,10 +149,10 @@ func (s *DashboardService) GetHistory(ctx context.Context) ([]dto.DashboardHisto
 	var result []dto.DashboardHistoryResponse
 	for _, d := range data {
 		result = append(result, dto.DashboardHistoryResponse{
-			Mes:            d["mes"].(string),
-			Monto:          d["monto"].(int64),
-			Promedio:       d["promedio"].(int64),
-			PromedioGlobal: d["promedio_global"].(int64),
+			Mes:             d["mes"].(string),
+			Monto:           d["monto"].(int64),
+			Promedio:        d["promedio"].(int64),
+			TendenciaGlobal: d["tendencia_global"].(int64),
 		})
 	}
 	return result, nil

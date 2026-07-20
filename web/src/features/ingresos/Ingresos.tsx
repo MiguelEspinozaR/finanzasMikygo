@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Pencil, Trash2, ChevronDown, ChevronRight, Camera, Eye, X, Diamond } from 'lucide-react'
+import { Pencil, Trash2, ChevronDown, ChevronRight, Camera, Eye, X, PieChart } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { ingresosApi, splitsApi, Ingreso } from '../../services/api'
 
@@ -271,7 +271,7 @@ export default function Ingresos() {
                                       className="p-1.5 text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded"
                                       title="Agregar a splits"
                                     >
-                                      <Diamond className="w-4 h-4" />
+                                      <PieChart className="w-4 h-4" />
                                     </button>
                                   )}
                                   <button

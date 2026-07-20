@@ -86,7 +86,7 @@ type DashboardHistoryResponse struct {
 	Mes            string `json:"mes"`
 	Monto          int64  `json:"monto"`
 	Promedio       int64  `json:"promedio"`
-	PromedioGlobal int64  `json:"promedio_global"`
+	TendenciaGlobal int64 `json:"tendencia_global"`
 }
 
 type SQLExecuteRequest struct {

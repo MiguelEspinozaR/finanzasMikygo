@@ -110,7 +110,9 @@ finanzasMikygo/
 │   ├── pubspec.yaml
 │   └── android/
 ├── CONTEXT.md
-├── run.bat
+├── deploy-nohup.sh       # Despliegue persistente con Cloudflared
+├── stop.sh               # Detener servicios
+├── status.sh             # Ver estado de servicios
 ├── .env.example
 └── .gitignore
 ```
@@ -249,7 +251,7 @@ GET    /swagger/*any                 # Swagger UI
 ### Dashboard
 - Navegación **independiente** por panel: semanas ← →, meses ← →, años ← →
 - Panel semanal: acepta `?fecha=YYYY-MM-DD` para semana de referencia
-- Panel histórico: línea de promedio **global constante** (no acumulada)
+- Panel histórico: línea de **tendencia global** (regresión lineal de totales mensuales)
 - Cards resumen: Días Trabajados, Días de Pago, Total Semanal, Total Mensual
 
 ### Calendario (Registrar Ingreso)
@@ -261,7 +263,7 @@ GET    /swagger/*any                 # Swagger UI
 - Trabajo registrado (histórico): fondo azul claro
 - Pago registrado (histórico): borde verde
 - Ambos registrados: fondo azul claro + borde verde
-- Días de registros anteriores: inmutables
+- **Permitido**: registrar trabajo sobre días que ya tienen pago (ej: pago ing A + trabajo ing B)
 
 ### Upload de Imagen
 - Flujo: crear ingreso → upload con `ingreso_id` → backend guarda como `pago_{id}.{ext}`
@@ -271,7 +273,7 @@ GET    /swagger/*any                 # Swagger UI
 
 ### Pagos Duplicados
 - Se permiten múltiples ingresos con la misma `fecha_pago`
-- Herramienta `trabajo`: bloqueada si la fecha ya tiene un pago registrado
+- Herramienta `trabajo`: permite registrar en fechas con pago existente
 - Herramienta `pago`: siempre permite registrar en fechas existentes
 - Herramienta `quitar`: siempre permite operar
 - En la tabla de ingresos, los registros del mismo día se agrupan visualmente con fondo sutil y fila de subtotal
@@ -281,7 +283,7 @@ GET    /swagger/*any                 # Swagger UI
 - Total de porcentajes no puede superar 100% (validación en backend)
 - Splits se generan automáticamente: `monto * (porcentaje / 100)`, redondeado a centavos
 - Cada split tiene monto_individual, realizado (bool), fecha_realizado
-- Botón "diamante" en lista de ingresos: genera splits si el ingreso no los tiene
+- Botón "pie chart" en lista de ingresos: genera splits si el ingreso no los tiene
 - Lista de splits ordenada por #ingreso descendente
 - Botón "Marcar realizado": muestra QR de la cuenta + monto a transferir
 - Splits realizados muestran fecha de realización con tooltip
@@ -326,17 +328,14 @@ SQL_DEV_ENABLED=true
 ## Ejecución
 
 ```bash
-# Windows (abre Windows Terminal con 2 pestañas)
-run.bat
-
-# Ubuntu (abre GNOME Terminal con 2 pestañas)
-chmod +x run.sh
-./run.sh
-
-# O por separado:
+# Local
 cd backend && go run cmd/server/main.go    # :8080
 cd web && npm run dev                       # :5173
-cd mobile && flutter run                    # Emulador/dispositivo
+
+# Despliegue persistente (Cloudflared + nohup)
+./deploy-nohup.sh                           # Backend + Frontend + Tunnel
+./status.sh                                 # Ver estado
+./stop.sh                                   # Detener servicios
 ```
 
 ## Estado de Implementación

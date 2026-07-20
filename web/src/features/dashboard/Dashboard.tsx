@@ -62,10 +62,10 @@ export default function Dashboard() {
     return { total, promedio: total / data.length }
   }, [yearly])
 
-  const historyGlobalAvg = useMemo(() => {
+  const historyTrend = useMemo(() => {
     const data = history?.data
     if (!data || data.length === 0) return 0
-    return data[0]?.promedio_global || 0
+    return data[0]?.tendencia_global || 0
   }, [history])
 
   const formatMonto = (monto: number) => {
@@ -273,7 +273,7 @@ export default function Dashboard() {
           Histórico de Ingresos
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Promedio global: {formatMonto(historyGlobalAvg)}
+          Tendencia global: {formatMonto(historyTrend)}
         </p>
         <ResponsiveContainer width="100%" height={300}>
           <ComposedChart data={history?.data || []} margin={{ top: 5, right: 20, bottom: 5, left: 5 }}>
@@ -304,7 +304,7 @@ export default function Dashboard() {
                 return `${monthNames[parseInt(m, 10) - 1]} ${y}`
               }}
             />
-            <ReferenceLine y={historyGlobalAvg} stroke="#10b981" strokeDasharray="5 5" label={{ value: 'Prom. global', fill: '#10b981', fontSize: 11 }} />
+            <ReferenceLine y={historyTrend} stroke="#10b981" strokeDasharray="5 5" label={{ value: 'Tendencia', fill: '#10b981', fontSize: 11 }} />
             <Bar dataKey="monto" fill="#3b82f6" radius={[4, 4, 0, 0]} />
             <Line type="monotone" dataKey="promedio" stroke="#f59e0b" strokeWidth={2} dot={false} name="promedio" />
           </ComposedChart>

@@ -1,13 +1,13 @@
 # Release Notes — v1.0.0
 
-**Fecha:** 16 de julio de 2026
+**Fecha:** 20 de julio de 2026
 
 ## Features Nuevos
 
 ### Sistema de Splits (Reparto de Ingresos en Cuentas)
 - Reparto automático de ingresos en múltiples cuentas bancarias por porcentaje
 - Configuración de splits: porcentaje por cuenta, orden de visualización
-- Generación de splits por ingreso desde la lista (botón diamante)
+- Generación de splits por ingreso desde la lista
 - Marcar splits como realizados con fecha de realización
 - Edición de montos individuales de splits
 - Eliminación de splits individuales
@@ -34,9 +34,20 @@
 - Búsqueda de referencia en texto completo cuando OCR separa líneas
 - Fallback a label cuando no se encuentra referencia
 
-### Acceso Externo a Frontend
-- Vite configurado con `host: '0.0.0.0'` para acceso desde red local
-- `run.sh` ejecuta vite directamente con `--host`
+### Despliegue Persistente con Cloudflared
+- Scripts `deploy-nohup.sh`, `stop.sh`, `status.sh` para despliegue via SSH
+- Los procesos sobreviven al cierre de la terminal
+- Configuración dinámica de `allowedHosts` para Vite
+- Proxy corregido de IP hardcodeada a `localhost`
+
+### Dashboard - Tendencia Global
+- Nuevo cálculo de tendencia global usando regresión lineal
+- Muestra la tendencia del histórico de ingresos mensuales
+- Label actualizado de "Prom. global" a "Tendencia global"
+
+### Registrar - Días de Pago Pasados
+- Permitido registrar días de trabajo sobre días que ya tienen pago registrado
+- Ejemplo: trabajo 9/7 con pago 15/7, aunque 9/7 ya es pago de otro ingreso
 
 ## Bug Fixes
 
@@ -53,7 +64,9 @@
 ### Frontend
 - **Dark mode**: `gray-750` → `gray-700` en ConfiguracionSplits, Splits.tsx, EditarSplitModal.tsx
 - **cuentasData crash**: extracción `cuentasData?.data` para evitar undefined
-- **Splits排序**: lista ordenada por #ingreso descendente
+- **Splits**: lista ordenada por #ingreso descendente
+- **Ingresos**: ícono de "agregar a splits" cambiado de `Diamond` a `PieChart` (consistente con pestaña Splits)
+- **Vite proxy**: target corregido de `192.168.2.107:8080` a `localhost:8080`
 
 ### OCR
 - **Referencia regex**: bounded con terminadores explícitos (`Fecha`, `Hora`, `Se `, `Monto`, `Su `, `$`)
@@ -76,23 +89,31 @@
 - `internal/handler/split_handler.go` — CRUD splits, cuentas, QR, MarcarRealizado, GenerarPorIngreso, GetIngresosConSplits
 - `internal/service/split_service.go` — GenerarSplits, GenerarPorIngreso, GetIngresosConSplits, validación porcentajes
 - `internal/repository/split_repository.go` — HasAnySplits, GetIngresosConSplits, MarcarRealizado fix
+- `internal/repository/dashboard_repository.go` — Tendencia global con regresión lineal
+- `internal/dto/ingreso_dto.go` — TendenciaGlobal en DashboardHistoryResponse
 - `internal/dto/split_dto.go` — SplitResponse con cuenta_id, qr_ruta; FormatSplitResponse
 - `internal/model/split.go` — Modelos de Split, SplitConfiguracion, Cuenta
 - `internal/router/router.go` — Rutas de splits y cuentas, endpoint QR corregido
 - `internal/service/ingreso_service.go` — Eliminado generarSplits duplicado
 
 ### Frontend (Web)
+- `features/dashboard/Dashboard.tsx` — Tendencia global con regresión lineal
+- `features/registrar/RegistrarIngreso.tsx` — Permitido trabajo sobre día de pago
+- `features/ingresos/Ingresos.tsx` — Ícono PieChart para splits
 - `features/splits/Splits.tsx` — Lista de splits, QR modal, botón realizado con tooltip, hover dark mode
 - `features/splits/ConfiguracionSplits.tsx` — Dark mode fix, botón editar
 - `features/splits/CuentaModal.tsx` — Drag & drop QR, submit en form
 - `features/splits/EditarSplitModal.tsx` — Dark mode fix
-- `features/ingresos/Ingresos.tsx` — Botón diamante para agregar splits
 - `services/api.ts` — Endpoints de splits, cuentas, ingresos-con-splits
 - `services/ocrService.ts` — Normalización, Referencia bounded, flexRangePattern
+- `vite.config.ts` — Proxy corregido a localhost
 
 ### Configuración
-- `vite.config.ts` — `host: '0.0.0.0'` para acceso externo
-- `run.sh` — vite ejecutado directamente con `--host 0.0.0.0`
+- `deploy-nohup.sh` — Despliegue persistente con nohup
+- `stop.sh` — Detener servicios y restaurar config
+- `status.sh` — Ver estado de servicios
+- `README.md` — Instrucciones de despliegue actualizadas
+- `AGENTS.md` — Info real del proyecto
 
 ## Estado
 
@@ -102,4 +123,6 @@
 - **OCR**: Funcional con normalización y patrones avanzados
 - **Splits**: CRUD completo, generación por porcentaje, marcar realizado
 - **QR**: Upload, visualización en modal, eliminación
-- **Dark mode**: Corregido en todos los componentes de splits
+- **Dark mode**: Corregido en todos los componentes
+- **Despliegue**: Persistente con Cloudflared + nohup
+- **Dashboard**: Tendencia global con regresión lineal

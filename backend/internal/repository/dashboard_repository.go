@@ -126,14 +126,6 @@ func (r *DashboardRepository) GetYearlyData(ctx context.Context, year int) ([]ma
 }
 
 func (r *DashboardRepository) GetHistoryData(ctx context.Context) ([]map[string]interface{}, error) {
-	var globalAvg int64
-	err := r.db.QueryRow(ctx,
-		`SELECT COALESCE(CAST(SUM(monto_enteros) / NULLIF(COUNT(*), 0) AS BIGINT), 0)
-		 FROM ingreso_fechas_trabajo`).Scan(&globalAvg)
-	if err != nil {
-		return nil, fmt.Errorf("query global avg: %w", err)
-	}
-
 	rows, err := r.db.Query(ctx,
 		`SELECT to_char(ift.fecha_trabajo, 'YYYY-MM') as mes,
 		        SUM(ift.monto_enteros) as total,
@@ -146,7 +138,14 @@ func (r *DashboardRepository) GetHistoryData(ctx context.Context) ([]map[string]
 	}
 	defer rows.Close()
 
+	type monthData struct {
+		mes   string
+		total int64
+	}
+
+	var months []monthData
 	var result []map[string]interface{}
+
 	for rows.Next() {
 		var mes string
 		var total int64
@@ -158,13 +157,44 @@ func (r *DashboardRepository) GetHistoryData(ctx context.Context) ([]map[string]
 		if diasTrabajados > 0 {
 			promedio = total / diasTrabajados
 		}
+		months = append(months, monthData{mes: mes, total: total})
 		result = append(result, map[string]interface{}{
-			"mes":            mes,
-			"monto":          total,
-			"promedio":       promedio,
-			"promedio_global": globalAvg,
+			"mes":      mes,
+			"monto":    total,
+			"promedio": promedio,
 		})
 	}
+
+	// Calcular tendencia global (regresión lineal) sobre totales mensuales
+	n := float64(len(months))
+	var tendenciaGlobal int64
+	if n >= 2 {
+		var sumX, sumY, sumXY, sumX2 float64
+		for i, m := range months {
+			x := float64(i)
+			y := float64(m.total)
+			sumX += x
+			sumY += y
+			sumXY += x * y
+			sumX2 += x * x
+		}
+		// Pendiente de regresión lineal: m = (n*ΣXY - ΣX*ΣY) / (n*ΣX² - (ΣX)²)
+		denominator := n*sumX2 - sumX*sumX
+		if denominator != 0 {
+			pendiente := (n*sumXY - sumX*sumY) / denominator
+			// Valor de tendencia en el último mes (proyección)
+			ultimoIndice := n - 1
+			intercept := (sumY - pendiente*sumX) / n
+			tendenciaVal := pendiente*ultimoIndice + intercept
+			tendenciaGlobal = int64(tendenciaVal)
+		}
+	}
+
+	// Agregar tendencia_global a cada resultado
+	for i := range result {
+		result[i]["tendencia_global"] = tendenciaGlobal
+	}
+
 	return result, nil
 }
 

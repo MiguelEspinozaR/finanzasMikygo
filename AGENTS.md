@@ -1,14 +1,35 @@
 # AGENTS.md
 
 Project: finanzasMikygo
-Status: Placeholder — project does not exist yet.
+Stack: Go + Gin (backend) / React + Vite + TypeScript (web) / Flutter (mobile)
+Database: PostgreSQL
 
 ## Setup
 
-No setup required. This file should be updated once the project is initialized.
+```bash
+# Backend
+cd backend && go run cmd/server/main.go
 
-## Conventions
+# Frontend
+cd web && npm install && npm run dev
 
-- Update this file after choosing a tech stack, build system, and test framework.
-- Add exact commands for lint, typecheck, test, build, and dev server once they exist.
-- Document any non-obvious project structure or tooling quirks.
+# Despliegue persistente (Cloudflared)
+./deploy-nohup.sh
+```
+
+## Comandos
+
+- Backend: `cd backend && go run cmd/server/main.go`
+- Frontend dev: `cd web && npm run dev`
+- Frontend build: `cd web && npm run build`
+- Deploy: `./deploy-nohup.sh`
+- Stop: `./stop.sh`
+- Status: `./status.sh`
+
+## Convenciones
+
+- Montos en centavos (BIGINT): 150 BOB = 15000
+- Timezone: America/La_Paz (UTC-4)
+- Frontend features en `web/src/features/`
+- Backend layered: handler → service → repository
+- Migraciones SQL manuales en `backend/migrations/`

@@ -73,11 +73,8 @@ export default function RegistrarIngreso() {
 
   const handleDayClick = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd')
-    const ocupada = fechasOcupadas?.data?.[dateStr] || []
-    const tienePago = ocupada.includes('pago')
 
     if (activeTool === 'trabajo') {
-      if (tienePago) return
       setSelectedWorkDays(prev =>
         prev.includes(dateStr)
           ? prev.filter(d => d !== dateStr)

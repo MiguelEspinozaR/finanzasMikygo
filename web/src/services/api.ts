@@ -75,7 +75,7 @@ export interface DashboardHistoryResponse {
   fecha: string
   monto: number
   promedio: number
-  promedio_global: number
+  tendencia_global: number
 }
 
 export interface SQLExecuteResponse {

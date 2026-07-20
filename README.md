@@ -26,30 +26,50 @@ Gestor de ingresos laborales multiplataforma (Web + Android).
 - Timezone: America/La_Paz (UTC-4)
 - SQL Console (solo web, modo desarrollo)
 - API REST con Swagger
-- **Acceso externo**: frontend accesible desde red local
+- **Acceso externo**: frontend accesible desde red local o internet (Cloudflared)
 
-## Ejecución
+## Ejecución Local
 
 ```bash
-# Todo junto (backend + web + navegador)
-run.bat
-
-# Por separado
+# Backend
 cd backend && go run cmd/server/main.go    # :8080
+
+# Frontend
 cd web && npm run dev                       # :5173
+
+# Mobile
 cd mobile && flutter run                    # Emulador Android
 ```
+
+## Despliegue con Cloudflared (persistente)
+
+Los procesos sobreviven al cierre de la terminal SSH.
+
+```bash
+# Desplegar (backend + frontend + tunnel)
+./deploy-nohup.sh
+
+# Ver estado
+./status.sh
+
+# Detener servicios
+./stop.sh
+```
+
+El despliegue genera una URL pública tipo `https://xxx.trycloudflare.com`.
 
 ## Estructura
 
 ```
 finanzasMikygo/
-├── backend/          # Go + Gin API
-├── web/              # React SPA
-├── mobile/           # Flutter app
-├── CONTEXT.md        # Documentación técnica completa
-├── RELEASE_NOTES.md  # Notas de versión
-├── run.bat           # Panel de inicio rápido (Windows)
-├── run.sh            # Panel de inicio rápido (Linux/WSL)
+├── backend/              # Go + Gin API
+├── web/                  # React SPA
+├── mobile/               # Flutter app
+├── deploy-nohup.sh       # Despliegue persistente con Cloudflared
+├── stop.sh               # Detener servicios
+├── status.sh             # Ver estado de servicios
+├── CONTEXT.md            # Documentación técnica completa
+├── RELEASE_NOTES.md      # Notas de versión
+├── AGENTS.md             # Configuración para agentes IA
 └── .gitignore
 ```
