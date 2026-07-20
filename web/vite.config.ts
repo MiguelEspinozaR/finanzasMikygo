@@ -11,15 +11,15 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    allowedHosts: 'all',
+    allowedHosts: ['hudson-convicted-gene-patricia.trycloudflare.com'],
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://192.168.2.107:8080',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
       '/uploads': {
-        target: 'http://192.168.2.107:8080',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
     },
