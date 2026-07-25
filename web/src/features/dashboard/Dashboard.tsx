@@ -295,7 +295,7 @@ export default function Dashboard() {
             <Tooltip
               {...tooltipStyle}
               formatter={(value: number, name: string) => {
-                if (name === 'promedio') return [formatMonto(value), 'Prom. mensual']
+                if (name === 'promedio') return [formatMonto(value), 'Prom. semanal']
                 return [formatMonto(value), 'Total mes']
               }}
               labelFormatter={(label: string) => {

@@ -1,6 +1,29 @@
-# Release Notes — v1.0.0
+# Release Notes — v0.10.0
 
-**Fecha:** 20 de julio de 2026
+**Fecha:** 25 de julio de 2026
+
+## Adopción de Semantic Versioning (Semver)
+
+A partir de esta versión se adopta formalmente el estándar [Semantic Versioning 2.0.0](https://semver.org/).
+
+### Reglas
+- **MAJOR** (`X.0.0`): Cambios que rompen compatibilidad hacia atrás
+- **MINOR** (`0.X.0`): Features nuevos, compatibles hacia atrás
+- **PATCH** (`0.0.X`): Bug fixes
+
+### Justificación de v0.10.0
+- El proyecto está en fase de desarrollo activo (pre-1.0)
+- Desde v0.9.0 se agregaron features significativos (Splits, OCR, Deploy)
+- No hay breaking changes en la API
+- Por tanto, corresponde un bump de **MINOR**: `v0.9.0` → `v0.10.0`
+
+### Historial de versiones
+| Versión | Descripción |
+|---------|-------------|
+| v0.9.0 | Primera versión WEB estable (MVP funcional) |
+| v0.10.0 | Splits, OCR, Deploy persistente, Dashboard tendencia, Semver |
+
+---
 
 ## Features Nuevos
 
@@ -44,6 +67,11 @@
 - Nuevo cálculo de tendencia global usando regresión lineal
 - Muestra la tendencia del histórico de ingresos mensuales
 - Label actualizado de "Prom. global" a "Tendencia global"
+
+### Dashboard - Promedio Semanal
+- Línea de promedio cambiada de diaria a semanal en el gráfico de histórico
+- Cálculo: `total_mes / semanas_distintas` usando `EXTRACT(WEEK FROM fecha_trabajo)`
+- Tooltip actualizado de "Prom. mensual" a "Prom. semanal"
 
 ### Registrar - Días de Pago Pasados
 - Permitido registrar días de trabajo sobre días que ya tienen pago registrado
@@ -125,4 +153,5 @@
 - **QR**: Upload, visualización en modal, eliminación
 - **Dark mode**: Corregido en todos los componentes
 - **Despliegue**: Persistente con Cloudflared + nohup
-- **Dashboard**: Tendencia global con regresión lineal
+- **Dashboard**: Tendencia global con regresión lineal + promedio semanal
+- **Semver**: Adopción formal de Semantic Versioning 2.0.0

@@ -129,7 +129,7 @@ func (r *DashboardRepository) GetHistoryData(ctx context.Context) ([]map[string]
 	rows, err := r.db.Query(ctx,
 		`SELECT to_char(ift.fecha_trabajo, 'YYYY-MM') as mes,
 		        SUM(ift.monto_enteros) as total,
-		        COUNT(*) as dias_trabajados
+		        COUNT(DISTINCT EXTRACT(WEEK FROM ift.fecha_trabajo)) as semanas
 		 FROM ingreso_fechas_trabajo ift
 		 GROUP BY mes
 		 ORDER BY mes`)
@@ -149,13 +149,13 @@ func (r *DashboardRepository) GetHistoryData(ctx context.Context) ([]map[string]
 	for rows.Next() {
 		var mes string
 		var total int64
-		var diasTrabajados int64
-		if err := rows.Scan(&mes, &total, &diasTrabajados); err != nil {
+		var semanas int64
+		if err := rows.Scan(&mes, &total, &semanas); err != nil {
 			return nil, fmt.Errorf("scan history: %w", err)
 		}
 		promedio := int64(0)
-		if diasTrabajados > 0 {
-			promedio = total / diasTrabajados
+		if semanas > 0 {
+			promedio = total / semanas
 		}
 		months = append(months, monthData{mes: mes, total: total})
 		result = append(result, map[string]interface{}{
