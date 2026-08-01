@@ -15,6 +15,7 @@ type CreateIngresoRequest struct {
 	Tipo          string                  `json:"tipo" binding:"required,oneof=qr efectivo"`
 	Comentario    *string                 `json:"comentario"`
 	ImagenRuta    *string                 `json:"imagen_ruta"`
+	FuenteID      *int64                  `json:"fuente_id"`
 	FechasTrabajo []FechaTrabajoRequest   `json:"fechas_trabajo" binding:"required,min=1"`
 }
 
@@ -24,6 +25,7 @@ type UpdateIngresoRequest struct {
 	Tipo          *string                 `json:"tipo" binding:"omitempty,oneof=qr efectivo"`
 	Comentario    *string                 `json:"comentario"`
 	ImagenRuta    *string                 `json:"imagen_ruta"`
+	FuenteID      *int64                  `json:"fuente_id"`
 	FechasTrabajo []FechaTrabajoRequest   `json:"fechas_trabajo"`
 }
 
@@ -41,6 +43,7 @@ type IngresoResponse struct {
 	Tipo          string                  `json:"tipo"`
 	Comentario    *string                 `json:"comentario"`
 	ImagenRuta    *string                 `json:"imagen_ruta"`
+	FuenteID      *int64                  `json:"fuente_id"`
 	FechasTrabajo []FechaTrabajoResponse  `json:"fechas_trabajo"`
 	CreatedAt     time.Time               `json:"created_at"`
 	UpdatedAt     time.Time               `json:"updated_at"`

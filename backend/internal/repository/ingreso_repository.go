@@ -26,8 +26,8 @@ func (r *IngresoRepository) Create(ctx context.Context, ingreso *model.Ingreso) 
 	defer tx.Rollback(ctx)
 
 	query := `
-		INSERT INTO ingresos (fecha_pago, monto_enteros, tipo, comentario, imagen_ruta)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO ingresos (fecha_pago, monto_enteros, tipo, comentario, imagen_ruta, fuente_id)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at, updated_at`
 
 	err = tx.QueryRow(ctx, query,
@@ -36,6 +36,7 @@ func (r *IngresoRepository) Create(ctx context.Context, ingreso *model.Ingreso) 
 		ingreso.Tipo,
 		ingreso.Comentario,
 		ingreso.ImagenRuta,
+		ingreso.FuenteID,
 	).Scan(&ingreso.ID, &ingreso.CreatedAt, &ingreso.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("insert ingreso: %w", err)
@@ -84,7 +85,7 @@ func (r *IngresoRepository) GetAll(ctx context.Context, fechaInicio, fechaFin *t
 
 	query := fmt.Sprintf(`
 		SELECT i.id, i.fecha_pago, i.monto_enteros, i.tipo, i.comentario, i.imagen_ruta,
-			   i.created_at, i.updated_at
+		       i.fuente_id, i.created_at, i.updated_at
 		FROM ingresos i
 		%s
 		ORDER BY i.id DESC
@@ -102,7 +103,7 @@ func (r *IngresoRepository) GetAll(ctx context.Context, fechaInicio, fechaFin *t
 		var ing model.Ingreso
 		err := rows.Scan(
 			&ing.ID, &ing.FechaPago, &ing.MontoEnteros, &ing.Tipo,
-			&ing.Comentario, &ing.ImagenRuta, &ing.CreatedAt, &ing.UpdatedAt)
+			&ing.Comentario, &ing.ImagenRuta, &ing.FuenteID, &ing.CreatedAt, &ing.UpdatedAt)
 		if err != nil {
 			return nil, 0, fmt.Errorf("scan ingreso: %w", err)
 		}
@@ -121,10 +122,10 @@ func (r *IngresoRepository) GetAll(ctx context.Context, fechaInicio, fechaFin *t
 func (r *IngresoRepository) GetByID(ctx context.Context, id int64) (*model.Ingreso, error) {
 	var ing model.Ingreso
 	err := r.db.QueryRow(ctx,
-		`SELECT id, fecha_pago, monto_enteros, tipo, comentario, imagen_ruta, created_at, updated_at
+		`SELECT id, fecha_pago, monto_enteros, tipo, comentario, imagen_ruta, fuente_id, created_at, updated_at
 		 FROM ingresos WHERE id = $1`, id).Scan(
 		&ing.ID, &ing.FechaPago, &ing.MontoEnteros, &ing.Tipo,
-		&ing.Comentario, &ing.ImagenRuta, &ing.CreatedAt, &ing.UpdatedAt)
+		&ing.Comentario, &ing.ImagenRuta, &ing.FuenteID, &ing.CreatedAt, &ing.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("get ingreso: %w", err)
 	}
@@ -167,10 +168,10 @@ func (r *IngresoRepository) Update(ctx context.Context, id int64, ingreso *model
 
 	_, err = tx.Exec(ctx,
 		`UPDATE ingresos SET fecha_pago = $1, monto_enteros = $2, tipo = $3,
-		 comentario = $4, imagen_ruta = $5, updated_at = NOW()
-		 WHERE id = $6`,
+		 comentario = $4, imagen_ruta = $5, fuente_id = $6, updated_at = NOW()
+		 WHERE id = $7`,
 		ingreso.FechaPago, ingreso.MontoEnteros, ingreso.Tipo,
-		ingreso.Comentario, ingreso.ImagenRuta, id)
+		ingreso.Comentario, ingreso.ImagenRuta, ingreso.FuenteID, id)
 	if err != nil {
 		return fmt.Errorf("update ingreso: %w", err)
 	}

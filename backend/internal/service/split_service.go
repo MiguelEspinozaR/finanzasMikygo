@@ -47,6 +47,33 @@ func (s *SplitService) GetConfiguraciones(ctx context.Context) ([]dto.SplitConfi
 			CuentaTipo:  cuenta.Tipo,
 			Porcentaje:  c.Porcentaje,
 			Orden:       c.Orden,
+			FuenteID:    c.FuenteID,
+		})
+	}
+
+	return resp, nil
+}
+
+func (s *SplitService) GetConfiguracionesByFuente(ctx context.Context, fuenteID *int64) ([]dto.SplitConfigResponse, error) {
+	configs, err := s.splitRepo.GetConfiguracionesByFuenteID(ctx, fuenteID)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp []dto.SplitConfigResponse
+	for _, c := range configs {
+		cuenta, err := s.cuentaRepo.GetByID(ctx, c.CuentaID)
+		if err != nil {
+			continue
+		}
+		resp = append(resp, dto.SplitConfigResponse{
+			ID:          c.ID,
+			CuentaID:    c.CuentaID,
+			CuentaAlias: cuenta.Alias,
+			CuentaTipo:  cuenta.Tipo,
+			Porcentaje:  c.Porcentaje,
+			Orden:       c.Orden,
+			FuenteID:    c.FuenteID,
 		})
 	}
 
@@ -69,6 +96,7 @@ func (s *SplitService) UpdateConfiguraciones(ctx context.Context, req dto.Update
 				CuentaID:   conf.CuentaID,
 				Porcentaje: conf.Porcentaje,
 				Orden:      len(req.Configuraciones),
+				FuenteID:   conf.FuenteID,
 			}
 			if err := s.splitRepo.CreateConfiguracion(ctx, newConfig); err != nil {
 				return err
@@ -77,6 +105,7 @@ func (s *SplitService) UpdateConfiguraciones(ctx context.Context, req dto.Update
 		}
 
 		config.Porcentaje = conf.Porcentaje
+		config.FuenteID = conf.FuenteID
 		if err := s.splitRepo.UpdateConfiguracion(ctx, config.ID, config); err != nil {
 			return err
 		}
@@ -226,7 +255,12 @@ func (s *SplitService) DeleteSplit(ctx context.Context, id int64) error {
 }
 
 func (s *SplitService) GenerarSplits(ctx context.Context, ingresoID int64, montoEnteros int64) error {
-	configs, err := s.splitRepo.GetConfiguraciones(ctx)
+	ingreso, err := s.ingresoRepo.GetByID(ctx, ingresoID)
+	if err != nil {
+		return err
+	}
+
+	configs, err := s.splitRepo.GetConfiguracionesByFuenteID(ctx, ingreso.FuenteID)
 	if err != nil {
 		return err
 	}

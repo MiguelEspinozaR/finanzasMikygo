@@ -6,6 +6,7 @@ type UpdateSplitConfigRequest struct {
 	CuentaID           int64   `json:"cuenta_id" binding:"required"`
 	Porcentaje         float64 `json:"porcentaje" binding:"required,min=0,max=100"`
 	AplicarAPendientes bool    `json:"aplicar_a_pendientes"`
+	FuenteID           *int64  `json:"fuente_id"`
 }
 
 type UpdateAllSplitConfigRequest struct {
@@ -21,12 +22,13 @@ type UpdateSplitRequest struct {
 }
 
 type SplitConfigResponse struct {
-	ID         int64   `json:"id"`
-	CuentaID   int64   `json:"cuenta_id"`
-	CuentaAlias string `json:"cuenta_alias"`
-	CuentaTipo string  `json:"cuenta_tipo"`
-	Porcentaje float64 `json:"porcentaje"`
-	Orden      int     `json:"orden"`
+	ID          int64   `json:"id"`
+	CuentaID    int64   `json:"cuenta_id"`
+	CuentaAlias string  `json:"cuenta_alias"`
+	CuentaTipo  string  `json:"cuenta_tipo"`
+	Porcentaje  float64 `json:"porcentaje"`
+	Orden       int     `json:"orden"`
+	FuenteID    *int64  `json:"fuente_id"`
 }
 
 type SplitConfigListResponse struct {

@@ -9,6 +9,7 @@ type Ingreso struct {
 	Tipo          string            `json:"tipo"`
 	Comentario    *string           `json:"comentario"`
 	ImagenRuta    *string           `json:"imagen_ruta"`
+	FuenteID      *int64            `json:"fuente_id"`
 	FechasTrabajo []FechaTrabajo    `json:"fechas_trabajo"`
 	CreatedAt     time.Time         `json:"created_at"`
 	UpdatedAt     time.Time         `json:"updated_at"`

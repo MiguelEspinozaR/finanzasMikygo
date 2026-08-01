@@ -41,6 +41,7 @@ func (s *IngresoService) Create(ctx context.Context, req dto.CreateIngresoReques
 		Tipo:          req.Tipo,
 		Comentario:    req.Comentario,
 		ImagenRuta:    req.ImagenRuta,
+		FuenteID:      req.FuenteID,
 		FechasTrabajo: fechasTrabajo,
 	}
 
@@ -134,6 +135,9 @@ func (s *IngresoService) Update(ctx context.Context, id int64, req dto.UpdateIng
 	if req.ImagenRuta != nil {
 		existing.ImagenRuta = req.ImagenRuta
 	}
+	if req.FuenteID != nil {
+		existing.FuenteID = req.FuenteID
+	}
 	if req.FechasTrabajo != nil {
 		var fechas []model.FechaTrabajo
 		for _, f := range req.FechasTrabajo {
@@ -184,6 +188,7 @@ func (s *IngresoService) toResponse(ing *model.Ingreso) *dto.IngresoResponse {
 		Tipo:          ing.Tipo,
 		Comentario:    ing.Comentario,
 		ImagenRuta:    ing.ImagenRuta,
+		FuenteID:      ing.FuenteID,
 		FechasTrabajo: fechas,
 		CreatedAt:     ing.CreatedAt,
 		UpdatedAt:     ing.UpdatedAt,

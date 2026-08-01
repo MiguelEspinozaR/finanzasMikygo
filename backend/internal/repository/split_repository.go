@@ -19,7 +19,7 @@ func NewSplitRepository(db *pgxpool.Pool) *SplitRepository {
 
 func (r *SplitRepository) GetConfiguraciones(ctx context.Context) ([]model.SplitConfiguracion, error) {
 	query := `
-		SELECT id, cuenta_id, porcentaje, orden, created_at, updated_at
+		SELECT id, cuenta_id, porcentaje, orden, fuente_id, created_at, updated_at
 		FROM split_configuraciones
 		ORDER BY orden, id`
 
@@ -32,7 +32,7 @@ func (r *SplitRepository) GetConfiguraciones(ctx context.Context) ([]model.Split
 	var configs []model.SplitConfiguracion
 	for rows.Next() {
 		var c model.SplitConfiguracion
-		if err := rows.Scan(&c.ID, &c.CuentaID, &c.Porcentaje, &c.Orden, &c.CreatedAt, &c.UpdatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.CuentaID, &c.Porcentaje, &c.Orden, &c.FuenteID, &c.CreatedAt, &c.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan config: %w", err)
 		}
 		configs = append(configs, c)
@@ -43,13 +43,13 @@ func (r *SplitRepository) GetConfiguraciones(ctx context.Context) ([]model.Split
 
 func (r *SplitRepository) GetConfiguracionByCuentaID(ctx context.Context, cuentaID int64) (*model.SplitConfiguracion, error) {
 	query := `
-		SELECT id, cuenta_id, porcentaje, orden, created_at, updated_at
+		SELECT id, cuenta_id, porcentaje, orden, fuente_id, created_at, updated_at
 		FROM split_configuraciones
 		WHERE cuenta_id = $1`
 
 	var c model.SplitConfiguracion
 	err := r.db.QueryRow(ctx, query, cuentaID).Scan(
-		&c.ID, &c.CuentaID, &c.Porcentaje, &c.Orden, &c.CreatedAt, &c.UpdatedAt,
+		&c.ID, &c.CuentaID, &c.Porcentaje, &c.Orden, &c.FuenteID, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get config: %w", err)
@@ -58,25 +58,62 @@ func (r *SplitRepository) GetConfiguracionByCuentaID(ctx context.Context, cuenta
 	return &c, nil
 }
 
+func (r *SplitRepository) GetConfiguracionesByFuenteID(ctx context.Context, fuenteID *int64) ([]model.SplitConfiguracion, error) {
+	var query string
+	var args []interface{}
+
+	if fuenteID != nil {
+		query = `
+			SELECT id, cuenta_id, porcentaje, orden, fuente_id, created_at, updated_at
+			FROM split_configuraciones
+			WHERE fuente_id = $1
+			ORDER BY orden, id`
+		args = append(args, *fuenteID)
+	} else {
+		query = `
+			SELECT id, cuenta_id, porcentaje, orden, fuente_id, created_at, updated_at
+			FROM split_configuraciones
+			WHERE fuente_id IS NULL
+			ORDER BY orden, id`
+	}
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query config by fuente: %w", err)
+	}
+	defer rows.Close()
+
+	var configs []model.SplitConfiguracion
+	for rows.Next() {
+		var c model.SplitConfiguracion
+		if err := rows.Scan(&c.ID, &c.CuentaID, &c.Porcentaje, &c.Orden, &c.FuenteID, &c.CreatedAt, &c.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scan config: %w", err)
+		}
+		configs = append(configs, c)
+	}
+
+	return configs, nil
+}
+
 func (r *SplitRepository) CreateConfiguracion(ctx context.Context, config *model.SplitConfiguracion) error {
 	query := `
-		INSERT INTO split_configuraciones (cuenta_id, porcentaje, orden)
-		VALUES ($1, $2, $3)
+		INSERT INTO split_configuraciones (cuenta_id, porcentaje, orden, fuente_id)
+		VALUES ($1, $2, $3, $4)
 		RETURNING id, created_at, updated_at`
 
 	return r.db.QueryRow(ctx, query,
-		config.CuentaID, config.Porcentaje, config.Orden,
+		config.CuentaID, config.Porcentaje, config.Orden, config.FuenteID,
 	).Scan(&config.ID, &config.CreatedAt, &config.UpdatedAt)
 }
 
 func (r *SplitRepository) UpdateConfiguracion(ctx context.Context, id int64, config *model.SplitConfiguracion) error {
 	query := `
 		UPDATE split_configuraciones
-		SET porcentaje = $2, orden = $3, updated_at = NOW()
+		SET porcentaje = $2, orden = $3, fuente_id = $4, updated_at = NOW()
 		WHERE id = $1
 		RETURNING updated_at`
 
-	return r.db.QueryRow(ctx, query, id, config.Porcentaje, config.Orden).Scan(&config.UpdatedAt)
+	return r.db.QueryRow(ctx, query, id, config.Porcentaje, config.Orden, config.FuenteID).Scan(&config.UpdatedAt)
 }
 
 func (r *SplitRepository) DeleteConfiguracion(ctx context.Context, id int64) error {
