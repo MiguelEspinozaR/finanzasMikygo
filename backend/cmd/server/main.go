@@ -29,17 +29,20 @@ func main() {
 	dashboardRepo := repository.NewDashboardRepository(db)
 	cuentaRepo := repository.NewCuentaRepository(db)
 	splitRepo := repository.NewSplitRepository(db)
+	fuenteRepo := repository.NewFuenteRepository(db)
 
 	dashboardSvc := service.NewDashboardService(dashboardRepo)
 	splitSvc := service.NewSplitService(splitRepo, cuentaRepo, ingresoRepo)
 	ingresoSvc := service.NewIngresoService(ingresoRepo, splitSvc)
+	fuenteSvc := service.NewFuenteService(fuenteRepo)
 
 	ingresoHandler := handler.NewIngresoHandler(ingresoSvc)
 	dashboardHandler := handler.NewDashboardHandler(dashboardSvc)
 	sqlHandler := handler.NewSQLHandler(db)
 	splitHandler := handler.NewSplitHandler(splitSvc)
+	fuenteHandler := handler.NewFuenteHandler(fuenteSvc)
 
-	r := router.New(cfg, ingresoHandler, dashboardHandler, sqlHandler, splitHandler)
+	r := router.New(cfg, ingresoHandler, dashboardHandler, sqlHandler, splitHandler, fuenteHandler)
 
 	log.Printf("Server starting on port %s", cfg.Port)
 	if err := r.Run(":" + cfg.Port); err != nil {

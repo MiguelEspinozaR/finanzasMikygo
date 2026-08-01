@@ -18,6 +18,7 @@ func New(
 	dashboardHandler *handler.DashboardHandler,
 	sqlHandler *handler.SQLHandler,
 	splitHandler *handler.SplitHandler,
+	fuenteHandler *handler.FuenteHandler,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -71,6 +72,7 @@ func New(
 		splits := api.Group("/splits")
 		{
 			splits.GET("/config", splitHandler.GetConfiguraciones)
+			splits.GET("/config/fuente", splitHandler.GetConfiguracionesByFuente)
 			splits.PUT("/config", splitHandler.UpdateConfiguraciones)
 			splits.GET("/ingresos-con-splits", splitHandler.GetIngresosConSplits)
 			splits.POST("/generar/:id", splitHandler.GenerarPorIngreso)
@@ -91,6 +93,16 @@ func New(
 			cuentas.DELETE("/:id", splitHandler.DeleteCuenta)
 			cuentas.POST("/:id/qr", splitHandler.UpdateQr)
 			cuentas.DELETE("/:id/qr", splitHandler.DeleteQr)
+		}
+
+		// Fuentes
+		fuentes := api.Group("/fuentes")
+		{
+			fuentes.GET("", fuenteHandler.GetAll)
+			fuentes.POST("", fuenteHandler.Create)
+			fuentes.GET("/:id", fuenteHandler.GetByID)
+			fuentes.PUT("/:id", fuenteHandler.Update)
+			fuentes.DELETE("/:id", fuenteHandler.Delete)
 		}
 	}
 

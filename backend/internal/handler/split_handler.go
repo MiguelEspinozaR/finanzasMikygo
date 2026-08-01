@@ -28,6 +28,27 @@ func (h *SplitHandler) GetConfiguraciones(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.SplitConfigListResponse{Data: resp})
 }
 
+func (h *SplitHandler) GetConfiguracionesByFuente(c *gin.Context) {
+	fuenteIDStr := c.Query("fuente_id")
+	var fuenteID *int64
+	if fuenteIDStr != "" {
+		id, err := strconv.ParseInt(fuenteIDStr, 10, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid fuente_id"})
+			return
+		}
+		fuenteID = &id
+	}
+
+	resp, err := h.svc.GetConfiguracionesByFuente(c.Request.Context(), fuenteID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.SplitConfigListResponse{Data: resp})
+}
+
 func (h *SplitHandler) UpdateConfiguraciones(c *gin.Context) {
 	var req dto.UpdateAllSplitConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

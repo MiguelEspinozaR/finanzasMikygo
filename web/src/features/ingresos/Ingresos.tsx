@@ -4,11 +4,12 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Pencil, Trash2, ChevronDown, ChevronRight, Camera, Eye, X, PieChart } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { ingresosApi, splitsApi, Ingreso } from '../../services/api'
+import { ingresosApi, splitsApi, fuentesApi, Ingreso } from '../../services/api'
 
 export default function Ingresos() {
   const queryClient = useQueryClient()
   const [tipoFilter, setTipoFilter] = useState('')
+  const [fuenteFilter, setFuenteFilter] = useState('')
   const [fechaInicio, setFechaInicio] = useState('')
   const [fechaFin, setFechaFin] = useState('')
   const [editingGroup, setEditingGroup] = useState<Ingreso[] | null>(null)
@@ -17,10 +18,11 @@ export default function Ingresos() {
   const [collapsedYears, setCollapsedYears] = useState<Set<number>>(new Set())
 
   const { data: response, isLoading } = useQuery({
-    queryKey: ['ingresos', 'all', tipoFilter, fechaInicio, fechaFin],
+    queryKey: ['ingresos', 'all', tipoFilter, fuenteFilter, fechaInicio, fechaFin],
     queryFn: () => {
       const params: Record<string, string | number> = { page: 1, page_size: 1000 }
       if (tipoFilter) params.tipo = tipoFilter
+      if (fuenteFilter) params.fuente_id = fuenteFilter
       if (fechaInicio) params.fecha_inicio = fechaInicio
       if (fechaFin) params.fecha_fin = fechaFin
       return ingresosApi.getAll(params).then(r => r.data)
@@ -28,6 +30,13 @@ export default function Ingresos() {
   })
 
   const ingresos = response?.data || []
+
+  const { data: fuentes } = useQuery({
+    queryKey: ['fuentes'],
+    queryFn: () => fuentesApi.getAll(),
+  })
+
+  const fuentesList = fuentes?.data?.data || []
 
   const { data: ingresosConSplitsData } = useQuery({
     queryKey: ['splits', 'ingresos-con-splits'],
@@ -132,6 +141,19 @@ export default function Ingresos() {
             </select>
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fuente</label>
+            <select
+              value={fuenteFilter}
+              onChange={e => setFuenteFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="">Todas</option>
+              {fuentesList.map(f => (
+                <option key={f.id} value={f.id}>{f.nombre}</option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Desde</label>
             <input
               type="date"
@@ -150,7 +172,7 @@ export default function Ingresos() {
             />
           </div>
           <button
-            onClick={() => { setTipoFilter(''); setFechaInicio(''); setFechaFin('') }}
+            onClick={() => { setTipoFilter(''); setFuenteFilter(''); setFechaInicio(''); setFechaFin('') }}
             className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
           >
             Limpiar filtros
@@ -200,6 +222,7 @@ export default function Ingresos() {
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Días Trabajo</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Monto</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Tipo</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Fuente</th>
                           <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Acciones</th>
                         </tr>
                       </thead>
@@ -250,6 +273,15 @@ export default function Ingresos() {
                                   {ing.tipo === 'qr' ? 'QR' : 'Efectivo'}
                                 </span>
                               </td>
+                              <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">
+                                {ing.fuente_id ? (
+                                  <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300">
+                                    {fuentesList.find(f => f.id === ing.fuente_id)?.nombre || 'N/A'}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400">-</span>
+                                )}
+                              </td>
                               <td className="px-4 py-2 text-right">
                                 <div className="flex items-center justify-end gap-1">
                                   <button
@@ -285,7 +317,7 @@ export default function Ingresos() {
                             </tr>
                             {isLastInGroup && groupCount > 1 && (
                               <tr className="bg-gray-100 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-600">
-                                <td colSpan={3} className="px-4 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 text-right">
+                                <td colSpan={4} className="px-4 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 text-right">
                                   Subtotal ({groupCount} ingresos)
                                 </td>
                                 <td className="px-4 py-1.5 text-sm font-semibold text-green-700 dark:text-green-300">

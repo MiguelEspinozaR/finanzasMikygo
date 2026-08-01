@@ -4,7 +4,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMont
 import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Briefcase, CreditCard, X, CheckCircle, Upload, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { ingresosApi, CreateIngresoRequest } from '../../services/api'
+import { ingresosApi, fuentesApi, CreateIngresoRequest } from '../../services/api'
 import { recognizeReceipt, OcrReceiptData } from '../../services/ocrService'
 import OcrConfirmationModal from './OcrConfirmationModal'
 
@@ -26,6 +26,7 @@ export default function RegistrarIngreso() {
   const [showOcrModal, setShowOcrModal] = useState(false)
   const [isOcrProcessing, setIsOcrProcessing] = useState(false)
   const [ocrProgress, setOcrProgress] = useState(0)
+  const [fuenteId, setFuenteId] = useState<number | null>(null)
   const ocrTriggeredRef = useRef(false)
 
   const month = currentDate.getMonth() + 1
@@ -35,6 +36,13 @@ export default function RegistrarIngreso() {
     queryKey: ['fechasOcupadas', month, year],
     queryFn: () => ingresosApi.getFechasOcupadas(month, year),
   })
+
+  const { data: fuentes } = useQuery({
+    queryKey: ['fuentes'],
+    queryFn: () => fuentesApi.getAll(),
+  })
+
+  const fuentesList = fuentes?.data?.data || []
 
   const createMutation = useMutation({
     mutationFn: async (data: { request: CreateIngresoRequest; imagen?: File }) => {
@@ -63,6 +71,7 @@ export default function RegistrarIngreso() {
     setComentario('')
     setImagen(null)
     setImagenPreview(null)
+    setFuenteId(null)
   }
 
   const getDaysInMonth = useCallback(() => {
@@ -183,6 +192,7 @@ export default function RegistrarIngreso() {
         monto_enteros: montoEnteros,
         tipo,
         comentario: comentario || undefined,
+        fuente_id: fuenteId,
         fechas_trabajo: selectedWorkDays.sort().map(f => ({ fecha: f })),
       },
       imagen: imagen || undefined,
@@ -356,6 +366,22 @@ export default function RegistrarIngreso() {
               >
                 <option value="qr">QR</option>
                 <option value="efectivo">Efectivo</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Fuente de ingreso
+              </label>
+              <select
+                value={fuenteId ?? ''}
+                onChange={e => setFuenteId(e.target.value ? Number(e.target.value) : null)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="">Sin fuente</option>
+                {fuentesList.map(f => (
+                  <option key={f.id} value={f.id}>{f.nombre}</option>
+                ))}
               </select>
             </div>
 

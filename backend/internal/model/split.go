@@ -7,6 +7,7 @@ type SplitConfiguracion struct {
 	CuentaID   int64     `json:"cuenta_id"`
 	Porcentaje float64   `json:"porcentaje"`
 	Orden      int       `json:"orden"`
+	FuenteID   *int64    `json:"fuente_id"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }

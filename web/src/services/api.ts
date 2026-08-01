@@ -21,6 +21,7 @@ export interface Ingreso {
   tipo: 'qr' | 'efectivo'
   comentario: string | null
   imagen_ruta: string | null
+  fuente_id: number | null
   fechas_trabajo: FechaTrabajo[]
   created_at: string
   updated_at: string
@@ -39,6 +40,7 @@ export interface CreateIngresoRequest {
   tipo: 'qr' | 'efectivo'
   comentario?: string
   imagen_ruta?: string
+  fuente_id?: number | null
   fechas_trabajo: { fecha: string }[]
 }
 
@@ -116,6 +118,24 @@ export interface CuentaListResponse {
   data: Cuenta[]
 }
 
+// Fuentes
+export interface Fuente {
+  id: number
+  nombre: string
+  color: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateFuenteRequest {
+  nombre: string
+  color: string
+}
+
+export interface FuenteListResponse {
+  data: Fuente[]
+}
+
 // Splits
 export interface SplitConfig {
   id: number
@@ -124,6 +144,7 @@ export interface SplitConfig {
   cuenta_tipo: string
   porcentaje: number
   orden: number
+  fuente_id: number | null
 }
 
 export interface SplitConfigListResponse {
@@ -156,6 +177,7 @@ export interface UpdateSplitConfigRequest {
   cuenta_id: number
   porcentaje: number
   aplicar_a_pendientes: boolean
+  fuente_id?: number | null
 }
 
 export interface UpdateAllSplitConfigRequest {
@@ -214,9 +236,22 @@ export const cuentasApi = {
   deleteQr: (id: number) => api.delete(`/cuentas/${id}/qr`),
 }
 
+// Fuentes
+export const fuentesApi = {
+  create: (data: CreateFuenteRequest) => api.post<Fuente>('/fuentes', data),
+  getAll: () => api.get<FuenteListResponse>('/fuentes'),
+  getById: (id: number) => api.get<Fuente>(`/fuentes/${id}`),
+  update: (id: number, data: Partial<CreateFuenteRequest>) => api.put<Fuente>(`/fuentes/${id}`, data),
+  delete: (id: number) => api.delete(`/fuentes/${id}`),
+}
+
 // Splits
 export const splitsApi = {
   getConfig: () => api.get<SplitConfigListResponse>('/splits/config'),
+  getConfigByFuente: (fuenteId: number | null) => {
+    const params = fuenteId ? { fuente_id: fuenteId } : {}
+    return api.get<SplitConfigListResponse>('/splits/config/fuente', { params })
+  },
   updateConfig: (data: UpdateAllSplitConfigRequest) => api.put<{ message: string }>('/splits/config', data),
   getAll: () => api.get<SplitListResponse>('/splits'),
   getByIngresoId: (ingresoId: number) => api.get<SplitListResponse>(`/splits/ingreso/${ingresoId}`),
