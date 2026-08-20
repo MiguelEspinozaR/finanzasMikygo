@@ -3,9 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Settings, Check, Pencil, Trash2, ChevronDown, ChevronRight, QrCode, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { splitsApi, Split } from '../../services/api'
-import ConfiguracionSplits from './ConfiguracionSplits'
 import EditarSplitModal from './EditarSplitModal'
 
 const tipoBadgeColor: Record<string, string> = {
@@ -17,7 +17,6 @@ const tipoBadgeColor: Record<string, string> = {
 
 export default function Splits() {
   const queryClient = useQueryClient()
-  const [showConfig, setShowConfig] = useState(false)
   const [editingSplit, setEditingSplit] = useState<Split | null>(null)
   const [qrSplit, setQrSplit] = useState<Split | null>(null)
   const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set())
@@ -91,13 +90,13 @@ export default function Splits() {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Splits</h2>
           <p className="text-gray-500 dark:text-gray-400">Reparto de ingresos en cuentas</p>
         </div>
-        <button
-          onClick={() => setShowConfig(true)}
+        <Link
+          to="/configuracion"
           className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
         >
           <Settings className="w-4 h-4" />
           Configuración
-        </button>
+        </Link>
       </div>
 
       {splits.length === 0 ? (
@@ -247,7 +246,6 @@ export default function Splits() {
         </div>
       )}
 
-      {showConfig && <ConfiguracionSplits onClose={() => setShowConfig(false)} />}
       {editingSplit && <EditarSplitModal split={editingSplit} onClose={() => setEditingSplit(null)} />}
       {qrSplit && <QrModal split={qrSplit} onClose={() => setQrSplit(null)} />}
     </div>
