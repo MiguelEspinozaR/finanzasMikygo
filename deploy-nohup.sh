@@ -6,7 +6,8 @@ set -o pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 PID_FILE="/tmp/finanzas_pids.txt"
-TUNNEL_URL_FILE="/tmp/finanzas_tunnel_url.txt"
+TUNNEL_NAME="mikylab"
+TUNNEL_URL="https://test.mikylab.com"
 BACKEND_LOG="/tmp/finanzas_backend.log"
 FRONTEND_LOG="/tmp/finanzas_frontend.log"
 TUNNEL_LOG="/tmp/finanzas_tunnel.log"
@@ -74,43 +75,32 @@ sleep 2
 ok "Procesos anteriores detenidos"
 
 # ==========================================
-# [2/6] Cloudflare tunnel
+# [2/6] Cloudflare tunnel (named)
 # ==========================================
 echo ""
-echo -e "${CYAN}[2/6]${NC} Iniciando tunnel Cloudflare..."
+echo -e "${CYAN}[2/6]${NC} Iniciando tunnel Cloudflare (named: $TUNNEL_NAME)..."
 
-rm -f "$TUNNEL_LOG" "$TUNNEL_URL_FILE"
+rm -f "$TUNNEL_LOG"
 
-nohup cloudflared tunnel --url http://localhost:5173 > "$TUNNEL_LOG" 2>&1 &
+nohup cloudflared tunnel run "$TUNNEL_NAME" > "$TUNNEL_LOG" 2>&1 &
 TUNNEL_PID=$!
 
-info "Esperando URL del tunnel (PID $TUNNEL_PID)..."
+info "Esperando conexión del tunnel (PID $TUNNEL_PID)..."
+sleep 5
 
-for i in $(seq 1 30); do
-    TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' "$TUNNEL_LOG" 2>/dev/null | head -1)
-    if [ -n "$TUNNEL_URL" ]; then
-        break
-    fi
-    sleep 1
-    printf "."
-done
-echo ""
-
-if [ -z "$TUNNEL_URL" ]; then
-    err "No se pudo obtener URL del tunnel después de 30 segundos"
+if ! kill -0 "$TUNNEL_PID" 2>/dev/null; then
+    err "El tunnel se detuvo inesperadamente"
     echo ""
     info "Logs del tunnel:"
     tail -20 "$TUNNEL_LOG" 2>/dev/null
     exit 1
 fi
 
-echo "$TUNNEL_URL" > "$TUNNEL_URL_FILE"
 ok "Tunnel activo: $TUNNEL_URL"
 
-info "Configurando allowedHosts para $TUNNEL_URL..."
-TUNNEL_HOST=$(echo "$TUNNEL_URL" | sed 's|https://||')
-sed -i "s|allowedHosts: 'all'|allowedHosts: ['$TUNNEL_HOST']|g" "$DIR/web/vite.config.ts"
-if grep -q "$TUNNEL_HOST" "$DIR/web/vite.config.ts"; then
+info "Configurando allowedHosts para test.mikylab.com..."
+sed -i "s|allowedHosts: 'all'|allowedHosts: ['test.mikylab.com']|g" "$DIR/web/vite.config.ts"
+if grep -q "test.mikylab.com" "$DIR/web/vite.config.ts"; then
     ok "allowedHosts configurado"
 else
     warn "sed falló - allowedHosts no se actualizó"
