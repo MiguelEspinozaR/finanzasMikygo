@@ -16,15 +16,21 @@ func NewDashboardRepository(db *pgxpool.Pool) *DashboardRepository {
 	return &DashboardRepository{db: db}
 }
 
-func (r *DashboardRepository) GetWeeklyData(ctx context.Context, weekStart time.Time) ([]map[string]interface{}, error) {
+func (r *DashboardRepository) GetWeeklyData(ctx context.Context, weekStart time.Time, fuenteID *int64) ([]map[string]interface{}, error) {
 	weekEnd := weekStart.AddDate(0, 0, 7)
 
-	rows, err := r.db.Query(ctx,
-		`SELECT fecha_pago, SUM(monto_enteros) as total
+	query := `SELECT fecha_pago, SUM(monto_enteros) as total
 		 FROM ingresos
-		 WHERE fecha_pago >= $1 AND fecha_pago < $2
-		 GROUP BY fecha_pago
-		 ORDER BY fecha_pago`, weekStart, weekEnd)
+		 WHERE fecha_pago >= $1 AND fecha_pago < $2`
+	args := []interface{}{weekStart, weekEnd}
+	if fuenteID != nil {
+		args = append(args, *fuenteID)
+		query += fmt.Sprintf(" AND fuente_id = $%d", len(args))
+	}
+	query += ` GROUP BY fecha_pago
+		 ORDER BY fecha_pago`
+
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query weekly: %w", err)
 	}
@@ -45,14 +51,21 @@ func (r *DashboardRepository) GetWeeklyData(ctx context.Context, weekStart time.
 	return result, nil
 }
 
-func (r *DashboardRepository) GetMonthlyData(ctx context.Context, year, month int) ([]map[string]interface{}, error) {
-	rows, err := r.db.Query(ctx,
-		`SELECT EXTRACT(WEEK FROM ift.fecha_trabajo) as semana,
+func (r *DashboardRepository) GetMonthlyData(ctx context.Context, year, month int, fuenteID *int64) ([]map[string]interface{}, error) {
+	query := `SELECT EXTRACT(WEEK FROM ift.fecha_trabajo) as semana,
 		        ift.fecha_trabajo::text as fecha, ift.monto_enteros
 		 FROM ingreso_fechas_trabajo ift
+		 JOIN ingresos i ON ift.ingreso_id = i.id
 		 WHERE EXTRACT(YEAR FROM ift.fecha_trabajo) = $1
-		   AND EXTRACT(MONTH FROM ift.fecha_trabajo) = $2
-		 ORDER BY semana, ift.fecha_trabajo`, year, month)
+		   AND EXTRACT(MONTH FROM ift.fecha_trabajo) = $2`
+	args := []interface{}{year, month}
+	if fuenteID != nil {
+		args = append(args, *fuenteID)
+		query += fmt.Sprintf(" AND i.fuente_id = $%d", len(args))
+	}
+	query += ` ORDER BY semana, ift.fecha_trabajo`
+
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query monthly: %w", err)
 	}
@@ -97,13 +110,19 @@ func (r *DashboardRepository) GetMonthlyData(ctx context.Context, year, month in
 	return result, nil
 }
 
-func (r *DashboardRepository) GetYearlyData(ctx context.Context, year int) ([]map[string]interface{}, error) {
-	rows, err := r.db.Query(ctx,
-		`SELECT EXTRACT(MONTH FROM fecha_pago) as mes, SUM(monto_enteros) as total
+func (r *DashboardRepository) GetYearlyData(ctx context.Context, year int, fuenteID *int64) ([]map[string]interface{}, error) {
+	query := `SELECT EXTRACT(MONTH FROM fecha_pago) as mes, SUM(monto_enteros) as total
 		 FROM ingresos
-		 WHERE EXTRACT(YEAR FROM fecha_pago) = $1
-		 GROUP BY mes
-		 ORDER BY mes`, year)
+		 WHERE EXTRACT(YEAR FROM fecha_pago) = $1`
+	args := []interface{}{year}
+	if fuenteID != nil {
+		args = append(args, *fuenteID)
+		query += fmt.Sprintf(" AND fuente_id = $%d", len(args))
+	}
+	query += ` GROUP BY mes
+		 ORDER BY mes`
+
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query yearly: %w", err)
 	}
@@ -125,14 +144,21 @@ func (r *DashboardRepository) GetYearlyData(ctx context.Context, year int) ([]ma
 	return result, nil
 }
 
-func (r *DashboardRepository) GetHistoryData(ctx context.Context) ([]map[string]interface{}, error) {
-	rows, err := r.db.Query(ctx,
-		`SELECT to_char(ift.fecha_trabajo, 'YYYY-MM') as mes,
+func (r *DashboardRepository) GetHistoryData(ctx context.Context, fuenteID *int64) ([]map[string]interface{}, error) {
+	query := `SELECT to_char(ift.fecha_trabajo, 'YYYY-MM') as mes,
 		        SUM(ift.monto_enteros) as total,
 		        COUNT(DISTINCT EXTRACT(WEEK FROM ift.fecha_trabajo)) as semanas
 		 FROM ingreso_fechas_trabajo ift
-		 GROUP BY mes
-		 ORDER BY mes`)
+		 JOIN ingresos i ON ift.ingreso_id = i.id`
+	args := []interface{}{}
+	if fuenteID != nil {
+		args = append(args, *fuenteID)
+		query += fmt.Sprintf(" WHERE i.fuente_id = $%d", len(args))
+	}
+	query += ` GROUP BY mes
+		 ORDER BY mes`
+
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query history: %w", err)
 	}
@@ -198,13 +224,19 @@ func (r *DashboardRepository) GetHistoryData(ctx context.Context) ([]map[string]
 	return result, nil
 }
 
-func (r *DashboardRepository) GetDiasTrabajados(ctx context.Context, year, month int) ([]string, error) {
-	rows, err := r.db.Query(ctx,
-		`SELECT DISTINCT fecha_trabajo
+func (r *DashboardRepository) GetDiasTrabajados(ctx context.Context, year, month int, fuenteID *int64) ([]string, error) {
+	query := `SELECT DISTINCT fecha_trabajo
 		 FROM ingreso_fechas_trabajo ift
 		 JOIN ingresos i ON ift.ingreso_id = i.id
 		 WHERE EXTRACT(YEAR FROM ift.fecha_trabajo) = $1
-		   AND EXTRACT(MONTH FROM ift.fecha_trabajo) = $2`, year, month)
+		   AND EXTRACT(MONTH FROM ift.fecha_trabajo) = $2`
+	args := []interface{}{year, month}
+	if fuenteID != nil {
+		args = append(args, *fuenteID)
+		query += fmt.Sprintf(" AND i.fuente_id = $%d", len(args))
+	}
+
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query dias trabajados: %w", err)
 	}
@@ -221,12 +253,18 @@ func (r *DashboardRepository) GetDiasTrabajados(ctx context.Context, year, month
 	return dias, nil
 }
 
-func (r *DashboardRepository) GetDiasPago(ctx context.Context, year, month int) ([]string, error) {
-	rows, err := r.db.Query(ctx,
-		`SELECT DISTINCT fecha_pago
+func (r *DashboardRepository) GetDiasPago(ctx context.Context, year, month int, fuenteID *int64) ([]string, error) {
+	query := `SELECT DISTINCT fecha_pago
 		 FROM ingresos
 		 WHERE EXTRACT(YEAR FROM fecha_pago) = $1
-		   AND EXTRACT(MONTH FROM fecha_pago) = $2`, year, month)
+		   AND EXTRACT(MONTH FROM fecha_pago) = $2`
+	args := []interface{}{year, month}
+	if fuenteID != nil {
+		args = append(args, *fuenteID)
+		query += fmt.Sprintf(" AND fuente_id = $%d", len(args))
+	}
+
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query dias pago: %w", err)
 	}

@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TrendingUp, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, subMonths, addMonths, subYears, addYears } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { dashboardApi } from '../../services/api'
+import { dashboardApi, fuentesApi } from '../../services/api'
 import { useTheme } from '../../context/ThemeContext'
 
 const DAY_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4']
@@ -15,28 +15,36 @@ export default function Dashboard() {
 
   const [monthDate, setMonthDate] = useState(now)
   const [yearDate, setYearDate] = useState(now)
+  const [fuenteFilter, setFuenteFilter] = useState<number | ''>('')
 
   const currentMonth = monthDate.getMonth() + 1
   const currentYear = yearDate.getFullYear()
+  const fuenteId = fuenteFilter !== '' ? fuenteFilter : null
+
+  const { data: fuentes } = useQuery({
+    queryKey: ['fuentes'],
+    queryFn: () => fuentesApi.getAll(),
+  })
+  const fuentesList = fuentes?.data?.data || []
 
   const { data: summary } = useQuery({
-    queryKey: ['dashboard', 'summary', currentMonth, monthDate.getFullYear()],
-    queryFn: () => dashboardApi.getSummary(currentMonth, monthDate.getFullYear()),
+    queryKey: ['dashboard', 'summary', currentMonth, monthDate.getFullYear(), fuenteId],
+    queryFn: () => dashboardApi.getSummary(currentMonth, monthDate.getFullYear(), fuenteId),
   })
 
   const { data: monthly } = useQuery({
-    queryKey: ['dashboard', 'monthly', currentMonth, monthDate.getFullYear()],
-    queryFn: () => dashboardApi.getMonthly(currentMonth, monthDate.getFullYear()),
+    queryKey: ['dashboard', 'monthly', currentMonth, monthDate.getFullYear(), fuenteId],
+    queryFn: () => dashboardApi.getMonthly(currentMonth, monthDate.getFullYear(), fuenteId),
   })
 
   const { data: yearly } = useQuery({
-    queryKey: ['dashboard', 'yearly', currentYear],
-    queryFn: () => dashboardApi.getYearly(currentYear),
+    queryKey: ['dashboard', 'yearly', currentYear, fuenteId],
+    queryFn: () => dashboardApi.getYearly(currentYear, fuenteId),
   })
 
   const { data: history } = useQuery({
-    queryKey: ['dashboard', 'history'],
-    queryFn: () => dashboardApi.getHistory(),
+    queryKey: ['dashboard', 'history', fuenteId],
+    queryFn: () => dashboardApi.getHistory(fuenteId),
   })
 
   const tooltipStyle = {
@@ -160,9 +168,21 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h2>
-        <p className="text-gray-500 dark:text-gray-400">Resumen de tus ingresos</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h2>
+          <p className="text-gray-500 dark:text-gray-400">Resumen de tus ingresos</p>
+        </div>
+        <select
+          value={fuenteFilter}
+          onChange={e => setFuenteFilter(e.target.value ? Number(e.target.value) : '')}
+          className="text-sm px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+        >
+          <option value="">Todas las fuentes</option>
+          {fuentesList.map(f => (
+            <option key={f.id} value={f.id}>{f.nombre}</option>
+          ))}
+        </select>
       </div>
 
       {/* Summary Cards */}

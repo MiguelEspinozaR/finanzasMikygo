@@ -17,13 +17,13 @@ func NewDashboardService(repo *repository.DashboardRepository) *DashboardService
 	return &DashboardService{repo: repo}
 }
 
-func (s *DashboardService) GetSummary(ctx context.Context, year, month int) (*dto.DashboardSummaryResponse, error) {
-	diasTrabajados, err := s.repo.GetDiasTrabajados(ctx, year, month)
+func (s *DashboardService) GetSummary(ctx context.Context, year, month int, fuenteID *int64) (*dto.DashboardSummaryResponse, error) {
+	diasTrabajados, err := s.repo.GetDiasTrabajados(ctx, year, month, fuenteID)
 	if err != nil {
 		return nil, err
 	}
 
-	diasPago, err := s.repo.GetDiasPago(ctx, year, month)
+	diasPago, err := s.repo.GetDiasPago(ctx, year, month, fuenteID)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func (s *DashboardService) GetSummary(ctx context.Context, year, month int) (*dt
 	}, nil
 }
 
-func (s *DashboardService) GetWeekly(ctx context.Context, fecha string) ([]dto.DashboardWeeklyResponse, error) {
+func (s *DashboardService) GetWeekly(ctx context.Context, fecha string, fuenteID *int64) ([]dto.DashboardWeeklyResponse, error) {
 	var weekStart time.Time
 	if fecha != "" {
 		var err error
@@ -53,7 +53,7 @@ func (s *DashboardService) GetWeekly(ctx context.Context, fecha string) ([]dto.D
 	weekStart = weekStart.AddDate(0, 0, -(weekday - 1))
 	weekStart = time.Date(weekStart.Year(), weekStart.Month(), weekStart.Day(), 0, 0, 0, 0, weekStart.Location())
 
-	data, err := s.repo.GetWeeklyData(ctx, weekStart)
+	data, err := s.repo.GetWeeklyData(ctx, weekStart, fuenteID)
 	if err != nil {
 		return nil, err
 	}
@@ -78,8 +78,8 @@ func (s *DashboardService) GetWeekly(ctx context.Context, fecha string) ([]dto.D
 	return result, nil
 }
 
-func (s *DashboardService) GetMonthly(ctx context.Context, year, month int) ([]dto.DashboardMonthlyResponse, error) {
-	data, err := s.repo.GetMonthlyData(ctx, year, month)
+func (s *DashboardService) GetMonthly(ctx context.Context, year, month int, fuenteID *int64) ([]dto.DashboardMonthlyResponse, error) {
+	data, err := s.repo.GetMonthlyData(ctx, year, month, fuenteID)
 	if err != nil {
 		return nil, err
 	}
@@ -114,8 +114,8 @@ func (s *DashboardService) GetMonthly(ctx context.Context, year, month int) ([]d
 	return result, nil
 }
 
-func (s *DashboardService) GetYearly(ctx context.Context, year int) ([]dto.DashboardYearlyResponse, error) {
-	data, err := s.repo.GetYearlyData(ctx, year)
+func (s *DashboardService) GetYearly(ctx context.Context, year int, fuenteID *int64) ([]dto.DashboardYearlyResponse, error) {
+	data, err := s.repo.GetYearlyData(ctx, year, fuenteID)
 	if err != nil {
 		return nil, err
 	}
@@ -140,8 +140,8 @@ func (s *DashboardService) GetYearly(ctx context.Context, year int) ([]dto.Dashb
 	return result, nil
 }
 
-func (s *DashboardService) GetHistory(ctx context.Context) ([]dto.DashboardHistoryResponse, error) {
-	data, err := s.repo.GetHistoryData(ctx)
+func (s *DashboardService) GetHistory(ctx context.Context, fuenteID *int64) ([]dto.DashboardHistoryResponse, error) {
+	data, err := s.repo.GetHistoryData(ctx, fuenteID)
 	if err != nil {
 		return nil, err
 	}

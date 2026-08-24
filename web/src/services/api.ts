@@ -206,11 +206,31 @@ export const ingresosApi = {
 
 // Dashboard
 export const dashboardApi = {
-  getSummary: (mes: number, anio: number) => api.get<DashboardSummaryResponse>('/dashboard/summary', { params: { mes, anio } }),
-  getWeekly: (fecha?: string) => api.get<DashboardWeeklyResponse[]>('/dashboard/weekly', { params: { fecha } }),
-  getMonthly: (mes: number, anio: number) => api.get<DashboardMonthlyResponse[]>('/dashboard/monthly', { params: { mes, anio } }),
-  getYearly: (anio: number) => api.get<DashboardYearlyResponse[]>('/dashboard/yearly', { params: { anio } }),
-  getHistory: () => api.get<DashboardHistoryResponse[]>('/dashboard/history'),
+  getSummary: (mes: number, anio: number, fuenteId?: number | null) => {
+    const params: Record<string, any> = { mes, anio }
+    if (fuenteId) params.fuente_id = fuenteId
+    return api.get<DashboardSummaryResponse>('/dashboard/summary', { params })
+  },
+  getWeekly: (fecha?: string, fuenteId?: number | null) => {
+    const params: Record<string, any> = { fecha }
+    if (fuenteId) params.fuente_id = fuenteId
+    return api.get<DashboardWeeklyResponse[]>('/dashboard/weekly', { params })
+  },
+  getMonthly: (mes: number, anio: number, fuenteId?: number | null) => {
+    const params: Record<string, any> = { mes, anio }
+    if (fuenteId) params.fuente_id = fuenteId
+    return api.get<DashboardMonthlyResponse[]>('/dashboard/monthly', { params })
+  },
+  getYearly: (anio: number, fuenteId?: number | null) => {
+    const params: Record<string, any> = { anio }
+    if (fuenteId) params.fuente_id = fuenteId
+    return api.get<DashboardYearlyResponse[]>('/dashboard/yearly', { params })
+  },
+  getHistory: (fuenteId?: number | null) => {
+    const params: Record<string, any> = {}
+    if (fuenteId) params.fuente_id = fuenteId
+    return api.get<DashboardHistoryResponse[]>('/dashboard/history', { params })
+  },
 }
 
 // SQL
