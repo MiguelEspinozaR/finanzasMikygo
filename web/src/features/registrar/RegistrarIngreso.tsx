@@ -173,11 +173,12 @@ export default function RegistrarIngreso() {
       })
   }, [imagenPreview])
 
-  const handleOcrConfirm = (data: { monto: string; fechaPago: string; fechasTrabajo: string[]; comentario: string }) => {
+  const handleOcrConfirm = (data: { monto: string; fechaPago: string; fechasTrabajo: string[]; comentario: string; fuenteId: number | null }) => {
     setMonto(data.monto)
     setSelectedPaymentDay(data.fechaPago)
     setSelectedWorkDays(data.fechasTrabajo)
     setComentario(data.comentario)
+    setFuenteId(data.fuenteId)
     setShowOcrModal(false)
     toast.success('Datos del comprobante aplicados')
   }
@@ -567,6 +568,7 @@ export default function RegistrarIngreso() {
         <OcrConfirmationModal
           data={ocrResult}
           imagenPreview={imagenPreview}
+          fuentesList={fuentesList}
           onConfirm={handleOcrConfirm}
           onCancel={handleOcrCancel}
         />

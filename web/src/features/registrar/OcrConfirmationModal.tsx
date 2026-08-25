@@ -7,20 +7,23 @@ import { OcrReceiptData } from '../../services/ocrService'
 interface OcrConfirmationProps {
   data: OcrReceiptData
   imagenPreview: string
+  fuentesList: { id: number; nombre: string }[]
   onConfirm: (data: {
     monto: string
     fechaPago: string
     fechasTrabajo: string[]
     comentario: string
+    fuenteId: number | null
   }) => void
   onCancel: () => void
 }
 
-export default function OcrConfirmationModal({ data, imagenPreview, onConfirm, onCancel }: OcrConfirmationProps) {
+export default function OcrConfirmationModal({ data, imagenPreview, fuentesList, onConfirm, onCancel }: OcrConfirmationProps) {
   const [monto, setMonto] = useState(data.monto?.toString() || '')
   const [fechaPago, setFechaPago] = useState(data.fechaPago || '')
   const [fechasTrabajo, setFechasTrabajo] = useState<string[]>(data.fechasTrabajo)
   const [comentario, setComentario] = useState(data.referencia || '')
+  const [fuenteId, setFuenteId] = useState<number | null>(null)
   const [newDate, setNewDate] = useState('')
 
   const addDate = () => {
@@ -40,6 +43,7 @@ export default function OcrConfirmationModal({ data, imagenPreview, onConfirm, o
       fechaPago,
       fechasTrabajo,
       comentario,
+      fuenteId,
     })
   }
 
@@ -133,6 +137,23 @@ export default function OcrConfirmationModal({ data, imagenPreview, onConfirm, o
               onChange={e => setMonto(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
             />
+          </div>
+
+          {/* Fuente */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Fuente
+            </label>
+            <select
+              value={fuenteId ?? ''}
+              onChange={e => setFuenteId(e.target.value ? Number(e.target.value) : null)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+            >
+              <option value="">Sin fuente</option>
+              {fuentesList.map(f => (
+                <option key={f.id} value={f.id}>{f.nombre}</option>
+              ))}
+            </select>
           </div>
 
           {/* Comentario */}
