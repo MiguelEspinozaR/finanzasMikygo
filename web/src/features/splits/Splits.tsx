@@ -276,8 +276,18 @@ function QrModal({ split, onClose }: { split: Split; onClose: () => void }) {
             </span>
           </div>
           <div className="w-full bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Monto a transferir</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{split.monto_display}</p>
+            {split.realizado ? (
+              <>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                  {split.monto_display} bs transferido en: {split.fecha_realizado ? format(parseISO(split.fecha_realizado), 'dd/MM/yy') : ''}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Monto a transferir</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{split.monto_display}</p>
+              </>
+            )}
           </div>
         </div>
       </div>
