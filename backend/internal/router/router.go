@@ -43,6 +43,7 @@ func New(
 			ingresos.POST("", ingresoHandler.Create)
 			ingresos.GET("", ingresoHandler.GetAll)
 			ingresos.GET("/fechas-ocupadas", ingresoHandler.GetFechasOcupadas)
+			ingresos.GET("/detalle-dia", ingresoHandler.GetDetalleDia)
 			ingresos.POST("/upload", ingresoHandler.Upload)
 			ingresos.GET("/:id", ingresoHandler.GetByID)
 			ingresos.PUT("/:id", ingresoHandler.Update)

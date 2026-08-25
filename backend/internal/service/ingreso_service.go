@@ -167,6 +167,18 @@ func (s *IngresoService) GetFechasOcupadas(ctx context.Context, mes, anio int) (
 	return s.repo.GetFechasOcupadas(ctx, mes, anio)
 }
 
+func (s *IngresoService) GetDetalleDia(ctx context.Context, fecha string) (*dto.DetalleDiaResponse, error) {
+	data, err := s.repo.GetDetalleDia(ctx, fecha)
+	if err != nil {
+		return nil, err
+	}
+	return &dto.DetalleDiaResponse{
+		Fecha:  fecha,
+		Trabajo: data["trabajo"],
+		Pago:   data["pago"],
+	}, nil
+}
+
 func (s *IngresoService) UpdateImagenRuta(ctx context.Context, id int64, imagenRuta string) error {
 	return s.repo.UpdateImagenRuta(ctx, id, imagenRuta)
 }

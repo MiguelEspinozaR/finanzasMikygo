@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Briefcase, CreditCard, X, CheckCircle, Upload, Trash2, Plus, List } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Briefcase, CreditCard, X, CheckCircle, Upload, Trash2, Plus, List, Calendar } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { ingresosApi, fuentesApi } from '../../services/api'
 import { recognizeReceipt, OcrReceiptData } from '../../services/ocrService'
@@ -39,6 +39,7 @@ export default function RegistrarIngreso() {
   const [queue, setQueue] = useState<QueueItem[]>([])
   const [nextQueueId, setNextQueueId] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [dayDetailDate, setDayDetailDate] = useState<string | null>(null)
   const ocrTriggeredRef = useRef(false)
 
   const month = currentDate.getMonth() + 1
@@ -55,6 +56,12 @@ export default function RegistrarIngreso() {
   })
 
   const fuentesList = fuentes?.data?.data || []
+
+  const { data: dayDetail } = useQuery({
+    queryKey: ['detalleDia', dayDetailDate],
+    queryFn: () => ingresosApi.getDetalleDia(dayDetailDate!),
+    enabled: !!dayDetailDate,
+  })
 
   const resetForm = () => {
     setMonto('')
@@ -126,6 +133,11 @@ export default function RegistrarIngreso() {
     } else if (activeTool === 'quitar') {
       setSelectedWorkDays(prev => prev.filter(d => d !== dateStr))
       if (selectedPaymentDay === dateStr) setSelectedPaymentDay(null)
+    } else {
+      const ocupada = fechasOcupadas?.data?.[dateStr] || []
+      if (ocupada.length > 0) {
+        setDayDetailDate(dateStr)
+      }
     }
   }
 
@@ -258,20 +270,20 @@ export default function RegistrarIngreso() {
     const hasTrabajo = ocupada.includes('trabajo')
     const hasPago = ocupada.includes('pago')
 
-    if (hasTrabajo && hasPago) return 'bg-blue-200 dark:bg-blue-800 border-2 border-green-500 text-blue-800 dark:text-blue-200'
-    if (hasTrabajo) return 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
-    if (hasPago) return activeTool === 'trabajo' ? 'border-2 border-green-500 text-green-600 dark:text-green-400 cursor-not-allowed' : 'border-2 border-green-500 text-green-600 dark:text-green-400'
+    if (hasTrabajo && hasPago) return 'bg-blue-200 dark:bg-blue-800 border-2 border-orange-500 text-blue-800 dark:text-blue-200 cursor-pointer'
+    if (hasTrabajo) return 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 cursor-pointer'
+    if (hasPago) return activeTool === 'trabajo' ? 'border-2 border-orange-500 text-orange-600 dark:text-orange-400 cursor-not-allowed' : 'border-2 border-orange-500 text-orange-600 dark:text-orange-400 cursor-pointer'
 
-    if (isSelectedWork && isSelectedPayment) return 'bg-green-500 text-white border-2 border-blue-500'
+    if (isSelectedWork && isSelectedPayment) return 'bg-orange-500 text-white border-2 border-blue-500'
     if (isSelectedWork) return 'border-2 border-blue-500 text-blue-600 dark:text-blue-400'
-    if (isSelectedPayment) return 'bg-green-500 text-white'
+    if (isSelectedPayment) return 'bg-orange-500 text-white'
 
     return 'hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer'
   }
 
   const tools = [
     { id: 'trabajo' as Tool, label: 'Trabajo', icon: Briefcase, color: 'blue' },
-    { id: 'pago' as Tool, label: 'Pago', icon: CreditCard, color: 'green' },
+    { id: 'pago' as Tool, label: 'Pago', icon: CreditCard, color: 'orange' },
     { id: 'quitar' as Tool, label: 'Quitar', icon: X, color: 'red' },
   ]
 
@@ -295,8 +307,8 @@ export default function RegistrarIngreso() {
                   activeTool === tool.id
                     ? tool.color === 'blue'
                       ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                      : tool.color === 'green'
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                      : tool.color === 'orange'
+                      ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
                       : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
@@ -314,11 +326,11 @@ export default function RegistrarIngreso() {
               <span className="text-gray-600 dark:text-gray-400">Trabajo (seleccionado)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <div className="w-4 h-4 bg-orange-500 rounded"></div>
               <span className="text-gray-600 dark:text-gray-400">Pago (seleccionado)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-green-500 border-2 border-blue-500 rounded"></div>
+              <div className="w-4 h-4 bg-orange-500 border-2 border-blue-500 rounded"></div>
               <span className="text-gray-600 dark:text-gray-400">Trabajo + Pago</span>
             </div>
             <div className="flex items-center gap-2">
@@ -326,11 +338,11 @@ export default function RegistrarIngreso() {
               <span className="text-gray-600 dark:text-gray-400">Trabajo (registrado)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-green-500 rounded"></div>
+              <div className="w-4 h-4 border-2 border-orange-500 rounded"></div>
               <span className="text-gray-600 dark:text-gray-400">Pago (registrado)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-blue-200 dark:bg-blue-800 border-2 border-green-500 rounded"></div>
+              <div className="w-4 h-4 bg-blue-200 dark:bg-blue-800 border-2 border-orange-500 rounded"></div>
               <span className="text-gray-600 dark:text-gray-400">Trabajo + Pago (registrado)</span>
             </div>
           </div>
@@ -594,6 +606,61 @@ export default function RegistrarIngreso() {
           onConfirm={handleOcrConfirm}
           onCancel={handleOcrCancel}
         />
+      )}
+
+      {dayDetailDate && dayDetail?.data && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setDayDetailDate(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-sm w-full" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-gray-500" />
+                <h3 className="font-semibold text-gray-900 dark:text-white">
+                  {format(new Date(dayDetailDate + 'T00:00:00'), 'dd/MM/yyyy (EEEE)', { locale: es })}
+                </h3>
+              </div>
+              <button onClick={() => setDayDetailDate(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              {dayDetail.data.trabajo.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-1.5">
+                    <Briefcase className="w-4 h-4" />
+                    Trabajo ({dayDetail.data.trabajo.length})
+                  </h4>
+                  <div className="space-y-1">
+                    {dayDetail.data.trabajo.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm">
+                        <span className="text-gray-700 dark:text-gray-300">{item.fuente_nombre}</span>
+                        <span className="font-mono text-gray-900 dark:text-white">{item.monto_display}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {dayDetail.data.pago.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-orange-700 dark:text-orange-300 mb-2 flex items-center gap-1.5">
+                    <CreditCard className="w-4 h-4" />
+                    Pago ({dayDetail.data.pago.length})
+                  </h4>
+                  <div className="space-y-1">
+                    {dayDetail.data.pago.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between px-3 py-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-sm">
+                        <span className="text-gray-700 dark:text-gray-300">{item.fuente_nombre}</span>
+                        <span className="font-mono text-gray-900 dark:text-white">{item.monto_display}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {dayDetail.data.trabajo.length === 0 && dayDetail.data.pago.length === 0 && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">Sin registros</p>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

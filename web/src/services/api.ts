@@ -44,6 +44,20 @@ export interface CreateIngresoRequest {
   fechas_trabajo: { fecha: string }[]
 }
 
+export interface DetalleDiaItem {
+  ingreso_id: number
+  fuente_id: number | null
+  fuente_nombre: string
+  monto_enteros: number
+  monto_display: string
+}
+
+export interface DetalleDiaResponse {
+  fecha: string
+  trabajo: DetalleDiaItem[]
+  pago: DetalleDiaItem[]
+}
+
 export interface DashboardSummaryResponse {
   dias_trabajados: string[]
   dias_pago: string[]
@@ -192,6 +206,7 @@ export const ingresosApi = {
   update: (id: number, data: Partial<CreateIngresoRequest>) => api.put<Ingreso>(`/ingresos/${id}`, data),
   delete: (id: number) => api.delete(`/ingresos/${id}`),
   getFechasOcupadas: (mes: number, anio: number) => api.get<Record<string, string[]>>('/ingresos/fechas-ocupadas', { params: { mes, anio } }),
+  getDetalleDia: (fecha: string) => api.get<DetalleDiaResponse>('/ingresos/detalle-dia', { params: { fecha } }),
   upload: (file: File, ingresoId?: number) => {
     const formData = new FormData()
     formData.append('file', file)

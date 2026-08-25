@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"finanzasMikygo/internal/dto"
 	"finanzasMikygo/internal/model"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -230,6 +231,43 @@ func (r *IngresoRepository) GetFechasOcupadas(ctx context.Context, mes, anio int
 		fechas[key] = append(fechas[key], tipo)
 	}
 	return fechas, nil
+}
+
+func (r *IngresoRepository) GetDetalleDia(ctx context.Context, fecha string) (map[string][]dto.DetalleDiaItem, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT 'trabajo' as tipo, i.id as ingreso_id, i.fuente_id,
+		        COALESCE(f.nombre, 'Sin fuente') as fuente_nombre,
+		        ift.monto_enteros
+		 FROM ingreso_fechas_trabajo ift
+		 JOIN ingresos i ON i.id = ift.ingreso_id
+		 LEFT JOIN fuentes f ON f.id = i.fuente_id
+		 WHERE ift.fecha_trabajo = $1
+		 UNION ALL
+		 SELECT 'pago' as tipo, i.id as ingreso_id, i.fuente_id,
+		        COALESCE(f.nombre, 'Sin fuente') as fuente_nombre,
+		        i.monto_enteros
+		 FROM ingresos i
+		 LEFT JOIN fuentes f ON f.id = i.fuente_id
+		 WHERE i.fecha_pago = $1`, fecha)
+	if err != nil {
+		return nil, fmt.Errorf("query detalle dia: %w", err)
+	}
+	defer rows.Close()
+
+	result := map[string][]dto.DetalleDiaItem{
+		"trabajo": {},
+		"pago":    {},
+	}
+	for rows.Next() {
+		var tipo string
+		var item dto.DetalleDiaItem
+		if err := rows.Scan(&tipo, &item.IngresoID, &item.FuenteID, &item.FuenteNombre, &item.MontoEnteros); err != nil {
+			return nil, fmt.Errorf("scan detalle dia: %w", err)
+		}
+		item.MontoDisplay = fmt.Sprintf("%.2f BOB", float64(item.MontoEnteros)/100)
+		result[tipo] = append(result[tipo], item)
+	}
+	return result, nil
 }
 
 func (r *IngresoRepository) UpdateImagenRuta(ctx context.Context, id int64, imagenRuta string) error {

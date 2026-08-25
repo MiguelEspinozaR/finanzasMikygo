@@ -61,6 +61,20 @@ type DashboardSummaryResponse struct {
 	DiasPago       []string `json:"dias_pago"`
 }
 
+type DetalleDiaItem struct {
+	IngresoID     int64  `json:"ingreso_id"`
+	FuenteID      *int64 `json:"fuente_id"`
+	FuenteNombre  string `json:"fuente_nombre"`
+	MontoEnteros  int64  `json:"monto_enteros"`
+	MontoDisplay  string `json:"monto_display"`
+}
+
+type DetalleDiaResponse struct {
+	Fecha  string            `json:"fecha"`
+	Trabajo []DetalleDiaItem  `json:"trabajo"`
+	Pago   []DetalleDiaItem  `json:"pago"`
+}
+
 type DashboardWeeklyResponse struct {
 	Dia      string `json:"dia"`
 	Monto    int64  `json:"monto"`

@@ -196,6 +196,31 @@ func (h *IngresoHandler) GetFechasOcupadas(c *gin.Context) {
 	c.JSON(http.StatusOK, fechas)
 }
 
+// GetDetalleDia godoc
+// @Summary      Obtener detalle de un día
+// @Description  Obtiene el desglose de trabajo y pago por fuente para un día específico
+// @Tags         Ingresos
+// @Accept       json
+// @Produce      json
+// @Param        fecha  query  string  true  "Fecha (YYYY-MM-DD)"
+// @Success      200    {object}  dto.DetalleDiaResponse
+// @Router       /ingresos/detalle-dia [get]
+func (h *IngresoHandler) GetDetalleDia(c *gin.Context) {
+	fecha := c.Query("fecha")
+	if fecha == "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "fecha is required"})
+		return
+	}
+
+	detalle, err := h.svc.GetDetalleDia(c.Request.Context(), fecha)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, detalle)
+}
+
 // Upload godoc
 // @Summary      Subir imagen
 // @Description  Subir una imagen de comprobante
