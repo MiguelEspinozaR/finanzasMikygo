@@ -1,14 +1,21 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Briefcase, CreditCard, X, CheckCircle, Upload, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Briefcase, CreditCard, X, CheckCircle, Upload, Trash2, Plus, List } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { ingresosApi, fuentesApi, CreateIngresoRequest } from '../../services/api'
+import { ingresosApi, fuentesApi } from '../../services/api'
 import { recognizeReceipt, OcrReceiptData } from '../../services/ocrService'
 import OcrConfirmationModal from './OcrConfirmationModal'
 
 type Tool = 'trabajo' | 'pago' | 'quitar'
+
+interface QueueItem {
+  id: number
+  fuente_id: number | null
+  monto: string
+  tipo: 'qr' | 'efectivo'
+}
 
 export default function RegistrarIngreso() {
   const queryClient = useQueryClient()
@@ -27,6 +34,9 @@ export default function RegistrarIngreso() {
   const [isOcrProcessing, setIsOcrProcessing] = useState(false)
   const [ocrProgress, setOcrProgress] = useState(0)
   const [fuenteId, setFuenteId] = useState<number | null>(null)
+  const [queue, setQueue] = useState<QueueItem[]>([])
+  const [nextQueueId, setNextQueueId] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const ocrTriggeredRef = useRef(false)
 
   const month = currentDate.getMonth() + 1
@@ -44,34 +54,40 @@ export default function RegistrarIngreso() {
 
   const fuentesList = fuentes?.data?.data || []
 
-  const createMutation = useMutation({
-    mutationFn: async (data: { request: CreateIngresoRequest; imagen?: File }) => {
-      const response = await ingresosApi.create(data.request)
-      if (data.imagen) {
-        await ingresosApi.upload(data.imagen, response.data.id)
-      }
-      return response
-    },
-    onSuccess: async () => {
-      queryClient.invalidateQueries({ queryKey: ['ingresos'] })
-      queryClient.invalidateQueries({ queryKey: ['fechasOcupadas'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      toast.success('Ingreso registrado exitosamente')
-      resetForm()
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Error al registrar ingreso')
-    },
-  })
-
   const resetForm = () => {
-    setSelectedWorkDays([])
-    setSelectedPaymentDay(null)
     setMonto('')
     setComentario('')
     setImagen(null)
     setImagenPreview(null)
     setFuenteId(null)
+  }
+
+  const resetAll = () => {
+    setSelectedWorkDays([])
+    setSelectedPaymentDay(null)
+    setQueue([])
+    resetForm()
+  }
+
+  const addToQueue = () => {
+    if (!monto || parseFloat(monto) <= 0) {
+      toast.error('Ingresa un monto válido')
+      return
+    }
+    setQueue(prev => [...prev, {
+      id: nextQueueId,
+      fuente_id: fuenteId,
+      monto,
+      tipo,
+    }])
+    setNextQueueId(n => n + 1)
+    setMonto('')
+    setFuenteId(null)
+    toast.success('Agregado a la lista')
+  }
+
+  const removeFromQueue = (id: number) => {
+    setQueue(prev => prev.filter(item => item.id !== id))
   }
 
   const getDaysInMonth = useCallback(() => {
@@ -179,24 +195,38 @@ export default function RegistrarIngreso() {
       toast.error('Selecciona un día de pago')
       return
     }
-    if (!monto || parseFloat(monto) <= 0) {
-      toast.error('Ingresa un monto válido')
+    if (queue.length === 0) {
+      toast.error('Agrega al menos un ingreso a la lista')
       return
     }
 
-    const montoEnteros = Math.round(parseFloat(monto) * 100)
-
-    createMutation.mutate({
-      request: {
-        fecha_pago: selectedPaymentDay,
-        monto_enteros: montoEnteros,
-        tipo,
-        comentario: comentario || undefined,
-        fuente_id: fuenteId,
-        fechas_trabajo: selectedWorkDays.sort().map(f => ({ fecha: f })),
-      },
-      imagen: imagen || undefined,
-    })
+    setIsSubmitting(true)
+    try {
+      for (let i = 0; i < queue.length; i++) {
+        const item = queue[i]
+        const montoEnteros = Math.round(parseFloat(item.monto) * 100)
+        const response = await ingresosApi.create({
+          fecha_pago: selectedPaymentDay,
+          monto_enteros: montoEnteros,
+          tipo: item.tipo,
+          comentario: comentario || undefined,
+          fuente_id: item.fuente_id,
+          fechas_trabajo: selectedWorkDays.sort().map(f => ({ fecha: f })),
+        })
+        if (i === 0 && imagen) {
+          await ingresosApi.upload(imagen, response.data.id)
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ['ingresos'] })
+      queryClient.invalidateQueries({ queryKey: ['fechasOcupadas'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success(`${queue.length} ingreso(s) registrado(s)`)
+      resetAll()
+    } catch (error) {
+      toast.error('Error al registrar ingresos')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const days = getDaysInMonth()
@@ -467,19 +497,68 @@ export default function RegistrarIngreso() {
             </div>
 
             <button
-              onClick={handleSubmit}
-              disabled={createMutation.isPending}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg font-medium transition-colors"
+              onClick={addToQueue}
+              disabled={!monto || parseFloat(monto) <= 0}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg font-medium transition-colors"
             >
-              {createMutation.isPending ? (
-                'Registrando...'
-              ) : (
-                <>
-                  <CheckCircle className="w-5 h-5" />
-                  Registrar Ingreso
-                </>
-              )}
+              <Plus className="w-5 h-5" />
+              Agregar a la lista
             </button>
+
+            {/* Queue */}
+            {queue.length > 0 && (
+              <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    <List className="w-4 h-4" />
+                    Cola: {queue.length} ingreso(s)
+                  </p>
+                  <p className="text-sm font-mono font-medium text-gray-900 dark:text-white">
+                    {queue.reduce((sum, item) => sum + parseFloat(item.monto), 0).toFixed(2)} BOB
+                  </p>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {queue.map(item => (
+                    <div key={item.id} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                      <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                        item.tipo === 'qr'
+                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                          : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300'
+                      }`}>
+                        {item.tipo === 'qr' ? 'QR' : 'Efe'}
+                      </span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {fuentesList.find(f => f.id === item.fuente_id)?.nombre || 'Sin fuente'}
+                      </span>
+                      <span className="ml-auto font-mono text-sm text-gray-900 dark:text-white">
+                        {parseFloat(item.monto).toFixed(2)} BOB
+                      </span>
+                      <button
+                        onClick={() => removeFromQueue(item.id)}
+                        className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg font-medium transition-colors"
+                >
+                  {isSubmitting ? (
+                    'Registrando...'
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Registrar {queue.length} ingreso(s)
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
        </div>
       </div>
