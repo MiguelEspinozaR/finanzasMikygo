@@ -98,13 +98,15 @@ export default function Ingresos() {
     })
   }
 
-  const handleSaveGroup = async (edits: Map<number, { monto_enteros: number; comentario: string; imagenFile: File | null }>, sharedFechaPago: string) => {
+  const handleSaveGroup = async (edits: Map<number, { monto_enteros: number; comentario: string; imagenFile: File | null; fuente_id: number | null; fechas_trabajo: string[] }>, sharedFechaPago: string) => {
     try {
       for (const [id, data] of edits) {
         await ingresosApi.update(id, {
           fecha_pago: sharedFechaPago,
           monto_enteros: data.monto_enteros,
           comentario: data.comentario,
+          fuente_id: data.fuente_id,
+          fechas_trabajo: data.fechas_trabajo.map(f => ({ fecha: f })),
         })
         if (data.imagenFile) {
           await ingresosApi.upload(data.imagenFile, id)
@@ -343,6 +345,7 @@ export default function Ingresos() {
       {editingGroup && (
         <EditGroupModal
           group={editingGroup}
+          fuentesList={fuentesList}
           onClose={() => setEditingGroup(null)}
           onSave={handleSaveGroup}
         />
@@ -381,10 +384,11 @@ export default function Ingresos() {
   )
 }
 
-function EditGroupModal({ group, onClose, onSave }: {
+function EditGroupModal({ group, fuentesList, onClose, onSave }: {
   group: Ingreso[]
+  fuentesList: { id: number; nombre: string }[]
   onClose: () => void
-  onSave: (edits: Map<number, { monto_enteros: number; comentario: string; imagenFile: File | null }>, sharedFechaPago: string) => void
+  onSave: (edits: Map<number, { monto_enteros: number; comentario: string; imagenFile: File | null; fuente_id: number | null; fechas_trabajo: string[] }>, sharedFechaPago: string) => void
 }) {
   const sharedDate = group[0].fecha_pago.replace('T00:00:00Z', '').split('T')[0]
   const [fechaPago, setFechaPago] = useState(sharedDate)
@@ -396,6 +400,9 @@ function EditGroupModal({ group, onClose, onSave }: {
     comentario: string
     imagenFile: File | null
     imagenPreview: string | null
+    fuenteId: number | null
+    fechasTrabajo: string[]
+    newDate: string
   }>>(() => {
     const map = new Map()
     for (const ing of group) {
@@ -404,6 +411,9 @@ function EditGroupModal({ group, onClose, onSave }: {
         comentario: ing.comentario || '',
         imagenFile: null,
         imagenPreview: null,
+        fuenteId: ing.fuente_id || null,
+        fechasTrabajo: (ing.fechas_trabajo || []).map(ft => ft.fecha.replace('T00:00:00Z', '').split('T')[0]),
+        newDate: '',
       })
     }
     return map
@@ -418,6 +428,19 @@ function EditGroupModal({ group, onClose, onSave }: {
     })
   }
 
+  const addWorkDay = (id: number) => {
+    const data = edits.get(id)!
+    if (data.newDate && !data.fechasTrabajo.includes(data.newDate)) {
+      updateField(id, 'fechasTrabajo', [...data.fechasTrabajo, data.newDate].sort())
+      updateField(id, 'newDate', '')
+    }
+  }
+
+  const removeWorkDay = (id: number, date: string) => {
+    const data = edits.get(id)!
+    updateField(id, 'fechasTrabajo', data.fechasTrabajo.filter(d => d !== date))
+  }
+
   const handleImageSelect = (id: number, file: File) => {
     const url = URL.createObjectURL(file)
     updateField(id, 'imagenFile', file)
@@ -428,7 +451,7 @@ function EditGroupModal({ group, onClose, onSave }: {
     e.preventDefault()
     setIsSaving(true)
 
-    const payload = new Map<number, { monto_enteros: number; comentario: string; imagenFile: File | null }>()
+    const payload = new Map<number, { monto_enteros: number; comentario: string; imagenFile: File | null; fuente_id: number | null; fechas_trabajo: string[] }>()
     for (const [id, data] of edits) {
       const montoBOB = parseFloat(data.monto)
       if (isNaN(montoBOB) || montoBOB <= 0) {
@@ -436,10 +459,17 @@ function EditGroupModal({ group, onClose, onSave }: {
         setIsSaving(false)
         return
       }
+      if (data.fechasTrabajo.length === 0) {
+        toast.error(`Sin días de trabajo en ingreso #${id}`)
+        setIsSaving(false)
+        return
+      }
       payload.set(id, {
         monto_enteros: Math.round(montoBOB * 100),
         comentario: data.comentario,
         imagenFile: data.imagenFile,
+        fuente_id: data.fuenteId,
+        fechas_trabajo: data.fechasTrabajo,
       })
     }
 
@@ -504,6 +534,21 @@ function EditGroupModal({ group, onClose, onSave }: {
                       />
                     </div>
 
+                    {/* Fuente */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Fuente</label>
+                      <select
+                        value={data.fuenteId ?? ''}
+                        onChange={e => updateField(ing.id, 'fuenteId', e.target.value ? Number(e.target.value) : null)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                      >
+                        <option value="">Sin fuente</option>
+                        {fuentesList.map(f => (
+                          <option key={f.id} value={f.id}>{f.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
                     {/* Imagen */}
                     <div>
                       <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Imagen</label>
@@ -538,6 +583,40 @@ function EditGroupModal({ group, onClose, onSave }: {
                           />
                         </label>
                       )}
+                    </div>
+                  </div>
+
+                  {/* Días de trabajo */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Días de trabajo ({data.fechasTrabajo.length})
+                    </label>
+                    {data.fechasTrabajo.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {data.fechasTrabajo.map(date => (
+                          <span key={date} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded text-xs">
+                            {date}
+                            <button type="button" onClick={() => removeWorkDay(ing.id, date)} className="hover:text-red-500">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        value={data.newDate}
+                        onChange={e => updateField(ing.id, 'newDate', e.target.value)}
+                        className="flex-1 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addWorkDay(ing.id)}
+                        className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600"
+                      >
+                        +
+                      </button>
                     </div>
                   </div>
 
