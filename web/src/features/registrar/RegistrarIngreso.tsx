@@ -16,6 +16,7 @@ interface QueueItem {
   fecha_pago: string
   monto: string
   tipo: 'qr' | 'efectivo'
+  imagen: File | null
 }
 
 export default function RegistrarIngreso() {
@@ -85,6 +86,7 @@ export default function RegistrarIngreso() {
       fecha_pago: selectedPaymentDay,
       monto,
       tipo,
+      imagen,
     }])
     setNextQueueId(n => n + 1)
     setMonto('')
@@ -228,8 +230,8 @@ export default function RegistrarIngreso() {
           fuente_id: item.fuente_id,
           fechas_trabajo: selectedWorkDays.sort().map(f => ({ fecha: f })),
         })
-        if (i === 0 && imagen) {
-          await ingresosApi.upload(imagen, response.data.id)
+        if (item.imagen) {
+          await ingresosApi.upload(item.imagen, response.data.id)
         }
       }
       queryClient.invalidateQueries({ queryKey: ['ingresos'] })
