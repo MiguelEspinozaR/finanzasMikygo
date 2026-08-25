@@ -136,7 +136,8 @@ export default function Splits() {
 
                 {!isCollapsed && (
                   <div className="border-t border-gray-200 dark:border-gray-700">
-                    <table className="w-full">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
                       <thead>
                         <tr className="bg-gray-50 dark:bg-gray-700">
                           <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Ingreso</th>
@@ -238,6 +239,7 @@ export default function Splits() {
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 )}
               </div>
