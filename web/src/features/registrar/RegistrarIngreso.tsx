@@ -83,6 +83,10 @@ export default function RegistrarIngreso() {
     setNextQueueId(n => n + 1)
     setMonto('')
     setFuenteId(null)
+    setImagen(null)
+    setImagenPreview(null)
+    setOcrResult(null)
+    ocrTriggeredRef.current = false
     toast.success('Agregado a la lista')
   }
 
