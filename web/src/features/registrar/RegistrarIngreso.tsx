@@ -13,6 +13,7 @@ type Tool = 'trabajo' | 'pago' | 'quitar'
 interface QueueItem {
   id: number
   fuente_id: number | null
+  fecha_pago: string
   monto: string
   tipo: 'qr' | 'efectivo'
 }
@@ -74,9 +75,14 @@ export default function RegistrarIngreso() {
       toast.error('Ingresa un monto válido')
       return
     }
+    if (!selectedPaymentDay) {
+      toast.error('Selecciona un día de pago')
+      return
+    }
     setQueue(prev => [...prev, {
       id: nextQueueId,
       fuente_id: fuenteId,
+      fecha_pago: selectedPaymentDay,
       monto,
       tipo,
     }])
@@ -92,6 +98,10 @@ export default function RegistrarIngreso() {
 
   const removeFromQueue = (id: number) => {
     setQueue(prev => prev.filter(item => item.id !== id))
+  }
+
+  const updateQueueFechaPago = (id: number, fecha: string) => {
+    setQueue(prev => prev.map(item => item.id === id ? { ...item, fecha_pago: fecha } : item))
   }
 
   const getDaysInMonth = useCallback(() => {
@@ -211,7 +221,7 @@ export default function RegistrarIngreso() {
         const item = queue[i]
         const montoEnteros = Math.round(parseFloat(item.monto) * 100)
         const response = await ingresosApi.create({
-          fecha_pago: selectedPaymentDay,
+          fecha_pago: item.fecha_pago,
           monto_enteros: montoEnteros,
           tipo: item.tipo,
           comentario: comentario || undefined,
@@ -532,7 +542,13 @@ export default function RegistrarIngreso() {
                       }`}>
                         {item.tipo === 'qr' ? 'QR' : 'Efe'}
                       </span>
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <input
+                        type="date"
+                        value={item.fecha_pago}
+                        onChange={e => updateQueueFechaPago(item.id, e.target.value)}
+                        className="px-1.5 py-0.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs"
+                      />
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
                         {fuentesList.find(f => f.id === item.fuente_id)?.nombre || 'Sin fuente'}
                       </span>
                       <span className="ml-auto font-mono text-sm text-gray-900 dark:text-white">
