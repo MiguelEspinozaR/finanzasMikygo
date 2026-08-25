@@ -11,7 +11,7 @@ export default function FuentesTab() {
 
   const { data: fuentesData, isLoading } = useQuery({
     queryKey: ['fuentes'],
-    queryFn: () => fuentesApi.getAll().then(r => r.data),
+    queryFn: () => fuentesApi.getAll(),
   })
 
   const deleteFuente = useMutation({
@@ -23,7 +23,7 @@ export default function FuentesTab() {
     onError: () => toast.error('Error al eliminar fuente'),
   })
 
-  const fuentes = fuentesData?.data || []
+  const fuentes = fuentesData?.data?.data || []
 
   const handleDelete = (id: number) => {
     if (confirm('¿Eliminar esta fuente de ingreso?')) {
