@@ -8,7 +8,7 @@ import { ingresosApi, fuentesApi } from '../../services/api'
 import { recognizeReceipt, OcrReceiptData } from '../../services/ocrService'
 import OcrConfirmationModal from './OcrConfirmationModal'
 
-type Tool = 'trabajo' | 'pago' | 'quitar'
+type Tool = 'trabajo' | 'pago' | 'quitar' | null
 
 interface QueueItem {
   id: number
@@ -22,7 +22,7 @@ interface QueueItem {
 export default function RegistrarIngreso() {
   const queryClient = useQueryClient()
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [activeTool, setActiveTool] = useState<Tool>('trabajo')
+  const [activeTool, setActiveTool] = useState<Tool>(null)
   const [selectedWorkDays, setSelectedWorkDays] = useState<string[]>([])
   const [selectedPaymentDay, setSelectedPaymentDay] = useState<string | null>(null)
   const [monto, setMonto] = useState('')
@@ -270,20 +270,20 @@ export default function RegistrarIngreso() {
     const hasTrabajo = ocupada.includes('trabajo')
     const hasPago = ocupada.includes('pago')
 
-    if (hasTrabajo && hasPago) return 'bg-blue-200 dark:bg-blue-800 border-2 border-orange-500 text-blue-800 dark:text-blue-200 cursor-pointer'
+    if (hasTrabajo && hasPago) return 'bg-blue-200 dark:bg-blue-800 border-2 border-green-500 text-blue-800 dark:text-blue-200 cursor-pointer'
     if (hasTrabajo) return 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 cursor-pointer'
-    if (hasPago) return activeTool === 'trabajo' ? 'border-2 border-orange-500 text-orange-600 dark:text-orange-400 cursor-not-allowed' : 'border-2 border-orange-500 text-orange-600 dark:text-orange-400 cursor-pointer'
+    if (hasPago) return activeTool === 'trabajo' ? 'border-2 border-green-500 text-green-600 dark:text-green-400 cursor-not-allowed' : 'border-2 border-green-500 text-green-600 dark:text-green-400 cursor-pointer'
 
-    if (isSelectedWork && isSelectedPayment) return 'bg-orange-500 text-white border-2 border-blue-500'
+    if (isSelectedWork && isSelectedPayment) return 'bg-green-500 text-white border-2 border-blue-500'
     if (isSelectedWork) return 'border-2 border-blue-500 text-blue-600 dark:text-blue-400'
-    if (isSelectedPayment) return 'bg-orange-500 text-white'
+    if (isSelectedPayment) return 'bg-green-500 text-white'
 
     return 'hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer'
   }
 
   const tools = [
     { id: 'trabajo' as Tool, label: 'Trabajo', icon: Briefcase, color: 'blue' },
-    { id: 'pago' as Tool, label: 'Pago', icon: CreditCard, color: 'orange' },
+    { id: 'pago' as Tool, label: 'Pago', icon: CreditCard, color: 'green' },
     { id: 'quitar' as Tool, label: 'Quitar', icon: X, color: 'red' },
   ]
 
@@ -302,13 +302,13 @@ export default function RegistrarIngreso() {
             {tools.map(tool => (
               <button
                 key={tool.id}
-                onClick={() => setActiveTool(tool.id)}
+                onClick={() => setActiveTool(prev => prev === tool.id ? null : tool.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   activeTool === tool.id
                     ? tool.color === 'blue'
                       ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                      : tool.color === 'orange'
-                      ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
+                      : tool.color === 'green'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                       : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
@@ -326,11 +326,11 @@ export default function RegistrarIngreso() {
               <span className="text-gray-600 dark:text-gray-400">Trabajo (seleccionado)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-orange-500 rounded"></div>
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
               <span className="text-gray-600 dark:text-gray-400">Pago (seleccionado)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-orange-500 border-2 border-blue-500 rounded"></div>
+              <div className="w-4 h-4 bg-green-500 border-2 border-blue-500 rounded"></div>
               <span className="text-gray-600 dark:text-gray-400">Trabajo + Pago</span>
             </div>
             <div className="flex items-center gap-2">
@@ -338,11 +338,11 @@ export default function RegistrarIngreso() {
               <span className="text-gray-600 dark:text-gray-400">Trabajo (registrado)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-orange-500 rounded"></div>
+              <div className="w-4 h-4 border-2 border-green-500 rounded"></div>
               <span className="text-gray-600 dark:text-gray-400">Pago (registrado)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-blue-200 dark:bg-blue-800 border-2 border-orange-500 rounded"></div>
+              <div className="w-4 h-4 bg-blue-200 dark:bg-blue-800 border-2 border-green-500 rounded"></div>
               <span className="text-gray-600 dark:text-gray-400">Trabajo + Pago (registrado)</span>
             </div>
           </div>
@@ -641,13 +641,13 @@ export default function RegistrarIngreso() {
               )}
               {dayDetail.data.pago.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium text-orange-700 dark:text-orange-300 mb-2 flex items-center gap-1.5">
+                  <h4 className="text-sm font-medium text-green-700 dark:text-green-300 mb-2 flex items-center gap-1.5">
                     <CreditCard className="w-4 h-4" />
                     Pago ({dayDetail.data.pago.length})
                   </h4>
                   <div className="space-y-1">
                     {dayDetail.data.pago.map((item, i) => (
-                      <div key={i} className="flex items-center justify-between px-3 py-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-sm">
+                      <div key={i} className="flex items-center justify-between px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg text-sm">
                         <span className="text-gray-700 dark:text-gray-300">{item.fuente_nombre}</span>
                         <span className="font-mono text-gray-900 dark:text-white">{item.monto_display}</span>
                       </div>
