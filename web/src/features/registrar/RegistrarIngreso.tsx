@@ -272,7 +272,7 @@ export default function RegistrarIngreso() {
 
     if (hasTrabajo && hasPago) return 'bg-blue-200 dark:bg-blue-800 border-2 border-green-500 text-blue-800 dark:text-blue-200 cursor-pointer'
     if (hasTrabajo) return 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 cursor-pointer'
-    if (hasPago) return activeTool === 'trabajo' ? 'border-2 border-green-500 text-green-600 dark:text-green-400 cursor-not-allowed' : 'border-2 border-green-500 text-green-600 dark:text-green-400 cursor-pointer'
+    if (hasPago) return 'border-2 border-green-500 text-green-600 dark:text-green-400 cursor-pointer'
 
     if (isSelectedWork && isSelectedPayment) return 'bg-green-500 text-white border-2 border-blue-500'
     if (isSelectedWork) return 'border-2 border-blue-500 text-blue-600 dark:text-blue-400'
@@ -380,7 +380,6 @@ export default function RegistrarIngreso() {
               <button
                 key={date.toISOString()}
                 onClick={() => handleDayClick(date)}
-                disabled={activeTool === 'trabajo' && (fechasOcupadas?.data?.[format(date, 'yyyy-MM-dd')] || []).includes('pago')}
                 className={`aspect-square p-2 rounded-lg text-sm font-medium transition-all ${getDayClass(date)}`}
               >
                 {format(date, 'd')}
