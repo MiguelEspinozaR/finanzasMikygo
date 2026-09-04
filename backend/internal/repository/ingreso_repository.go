@@ -55,7 +55,7 @@ func (r *IngresoRepository) Create(ctx context.Context, ingreso *model.Ingreso) 
 	return tx.Commit(ctx)
 }
 
-func (r *IngresoRepository) GetAll(ctx context.Context, fechaInicio, fechaFin *time.Time, tipo *string, page, pageSize int) ([]model.Ingreso, int64, error) {
+func (r *IngresoRepository) GetAll(ctx context.Context, fechaInicio, fechaFin *time.Time, tipo *string, fuenteID *int64, page, pageSize int) ([]model.Ingreso, int64, error) {
 	offset := (page - 1) * pageSize
 	args := []interface{}{}
 	argCount := 0
@@ -75,6 +75,11 @@ func (r *IngresoRepository) GetAll(ctx context.Context, fechaInicio, fechaFin *t
 		argCount++
 		where += fmt.Sprintf(" AND i.tipo = $%d", argCount)
 		args = append(args, *tipo)
+	}
+	if fuenteID != nil {
+		argCount++
+		where += fmt.Sprintf(" AND i.fuente_id = $%d", argCount)
+		args = append(args, *fuenteID)
 	}
 
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM ingresos i %s", where)

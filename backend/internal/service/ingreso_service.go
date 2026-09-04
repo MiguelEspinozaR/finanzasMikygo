@@ -76,7 +76,7 @@ func (s *IngresoService) splitMonto(ingreso *model.Ingreso) {
 
 
 
-func (s *IngresoService) GetAll(ctx context.Context, fechaInicio, fechaFin *time.Time, tipo *string, page, pageSize int) (*dto.IngresoListResponse, error) {
+func (s *IngresoService) GetAll(ctx context.Context, fechaInicio, fechaFin *time.Time, tipo *string, fuenteID *int64, page, pageSize int) (*dto.IngresoListResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -84,7 +84,7 @@ func (s *IngresoService) GetAll(ctx context.Context, fechaInicio, fechaFin *time
 		pageSize = 20
 	}
 
-	ingresos, total, err := s.repo.GetAll(ctx, fechaInicio, fechaFin, tipo, page, pageSize)
+	ingresos, total, err := s.repo.GetAll(ctx, fechaInicio, fechaFin, tipo, fuenteID, page, pageSize)
 	if err != nil {
 		return nil, err
 	}

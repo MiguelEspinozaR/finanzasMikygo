@@ -63,6 +63,7 @@ func (h *IngresoHandler) Create(c *gin.Context) {
 func (h *IngresoHandler) GetAll(c *gin.Context) {
 	var fechaInicio, fechaFin *time.Time
 	var tipo *string
+	var fuenteID *int64
 
 	if fi := c.Query("fecha_inicio"); fi != "" {
 		t, err := time.ParseInLocation("2006-01-02", fi, config.Location)
@@ -79,11 +80,16 @@ func (h *IngresoHandler) GetAll(c *gin.Context) {
 	if t := c.Query("tipo"); t != "" {
 		tipo = &t
 	}
+	if fid := c.Query("fuente_id"); fid != "" {
+		if id, err := strconv.ParseInt(fid, 10, 64); err == nil {
+			fuenteID = &id
+		}
+	}
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
 
-	resp, err := h.svc.GetAll(c.Request.Context(), fechaInicio, fechaFin, tipo, page, pageSize)
+	resp, err := h.svc.GetAll(c.Request.Context(), fechaInicio, fechaFin, tipo, fuenteID, page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
 		return
