@@ -66,7 +66,7 @@ func (r *SplitRepository) GetConfiguracionesByFuenteID(ctx context.Context, fuen
 		query = `
 			SELECT id, cuenta_id, porcentaje, orden, fuente_id, created_at, updated_at
 			FROM split_configuraciones
-			WHERE fuente_id = $1
+			WHERE fuente_id = $1 OR fuente_id IS NULL
 			ORDER BY orden, id`
 		args = append(args, *fuenteID)
 	} else {
